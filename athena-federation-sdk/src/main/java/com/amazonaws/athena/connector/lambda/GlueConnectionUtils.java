@@ -67,7 +67,7 @@ public class GlueConnectionUtils
 
                     AWSGlue awsGlue = AWSGlueClientBuilder.standard()
                             .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(
-                                    "https://glue-gamma.ap-south-1.amazonaws.com", "ap-sout-1"
+                                    "https://glue-gamma.ap-south-1.amazonaws.com", "ap-south-1"
                                     ))
                             .withClientConfiguration(new ClientConfiguration().withConnectionTimeout(CONNECT_TIMEOUT)).build();
                     GetConnectionResult glueConnection = awsGlue.getConnection(new GetConnectionRequest().withName(glueConnectionName));
