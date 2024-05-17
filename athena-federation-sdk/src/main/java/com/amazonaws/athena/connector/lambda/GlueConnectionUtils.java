@@ -20,6 +20,7 @@
 package com.amazonaws.athena.connector.lambda;
 
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.glue.AWSGlue;
 import com.amazonaws.services.glue.AWSGlueClientBuilder;
 import com.amazonaws.services.glue.model.Connection;
@@ -64,7 +65,11 @@ public class GlueConnectionUtils
                 try {
                     HashMap<String, HashMap<String, String>> athenaPropertiesToMap = new HashMap<String, HashMap<String, String>>();
 
-                    AWSGlue awsGlue = AWSGlueClientBuilder.standard().withClientConfiguration(new ClientConfiguration().withConnectionTimeout(CONNECT_TIMEOUT)).build();
+                    AWSGlue awsGlue = AWSGlueClientBuilder.standard()
+                            .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(
+                                    "https://glue-gamma.ap-south-1.amazonaws.com", "ap-sout-1"
+                                    ))
+                            .withClientConfiguration(new ClientConfiguration().withConnectionTimeout(CONNECT_TIMEOUT)).build();
                     GetConnectionResult glueConnection = awsGlue.getConnection(new GetConnectionRequest().withName(glueConnectionName));
                     logger.debug("Successfully retrieved connection {}", glueConnectionName);
                     Connection connection = glueConnection.getConnection();
