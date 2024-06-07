@@ -69,8 +69,6 @@ Parameters:
     Default: ""
 
 Conditions:
-  HasSecurityGroups: !Not [ !Equals [ !Join [ "", !Ref SecurityGroupIds ], "" ] ]
-  HasSubnets: !Not [ !Equals [ !Join [ "", !Ref SubnetIds ], "" ] ]
   HasKmsKeyId: !Not [ !Equals [ !Ref KmsKeyId, "" ] ]
   NotHasLambdaRole: !Equals [ !Ref LambdaRoleArn, "" ]
   HasPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundaryArn, "" ] ]
@@ -101,8 +99,8 @@ Resources:
       MemorySize: !Ref LambdaMemory
       Role: !If [ NotHasLambdaRole, !GetAtt FunctionRole.Arn, !Ref LambdaRoleArn ]
       VpcConfig:
-        SecurityGroupIds: !If [ HasSecurityGroups, !Ref SecurityGroupIds, !Ref "AWS::NoValue" ]
-        SubnetIds: !If [ HasSubnets, !Ref SubnetIds, !Ref "AWS::NoValue" ]
+        SecurityGroupIds: !Ref SecurityGroupIds
+        SubnetIds: !Ref SubnetIds
 
   FunctionRole:
     Condition: NotHasLambdaRole

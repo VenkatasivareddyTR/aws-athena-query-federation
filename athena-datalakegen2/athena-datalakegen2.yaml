@@ -187,7 +187,7 @@ Resources:
                 - !Sub 'arn:${AWS::Partition}:glue:${AWS::Region}:${AWS::AccountId}:catalog'
             - !Ref "AWS::NoValue"
 
-  FunctionKMSPolicy:
+  FunctionKmsPolicy:
     Condition: CreateKmsPolicy
     Type: "AWS::IAM::Policy"
     Properties:
