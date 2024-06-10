@@ -1,6 +1,6 @@
 /*-
  * #%L
- * athena-vertica
+ * athena-redis
  * %%
  * Copyright (C) 2019 - 2024 Amazon Web Services
  * %%
@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package com.amazonaws.athena.connectors.vertica;
+package com.amazonaws.athena.connectors.redis.qpt;
 
 import com.amazonaws.athena.connector.lambda.metadata.optimizations.querypassthrough.QueryPassthroughSignature;
 import org.slf4j.Logger;
@@ -26,25 +26,27 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.List;
 
-public class VerticaQueryPassthrough implements QueryPassthroughSignature
+public final class RedisQueryPassthrough implements QueryPassthroughSignature
 {
     // Constant value representing the name of the query.
-    public static final String NAME = "query";
+    public static final String NAME = "script";
 
     // Constant value representing the domain of the query.
-    public static final String SCHEMA_NAME = "system";
+    public static final String SCHEMA = "system";
 
     // List of arguments for the query, statically initialized as it always contains the same value.
-    public static final String QUERY = "QUERY";
+    public static final String SCRIPT = "SCRIPT";
+    public static final String KEYS = "KEYS";
+    public static final String ARGV = "ARGV";
 
-    public static final List<String> ARGUMENTS = Arrays.asList(QUERY);
+    public static final List<String> ARGUMENTS = Arrays.asList(SCRIPT, KEYS, ARGV);
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(VerticaQueryPassthrough.class);
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(RedisQueryPassthrough.class);
+    
     @Override
     public String getFunctionSchema()
     {
-        return SCHEMA_NAME;
+        return SCHEMA;
     }
 
     @Override
@@ -64,5 +66,4 @@ public class VerticaQueryPassthrough implements QueryPassthroughSignature
     {
         return LOGGER;
     }
-
 }
