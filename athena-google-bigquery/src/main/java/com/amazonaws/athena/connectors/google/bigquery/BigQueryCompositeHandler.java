@@ -20,6 +20,7 @@
  */
 package com.amazonaws.athena.connectors.google.bigquery;
 
+import com.amazonaws.athena.connector.lambda.GlueConnectionUtils;
 import com.amazonaws.athena.connector.lambda.handlers.CompositeHandler;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
@@ -41,7 +42,7 @@ public class BigQueryCompositeHandler
     public BigQueryCompositeHandler()
             throws IOException
     {
-        super(new BigQueryMetadataHandler(System.getenv()), new BigQueryRecordHandler(System.getenv(), allocator));
+        super(new BigQueryMetadataHandler(GlueConnectionUtils.getGlueConnection()), new BigQueryRecordHandler(GlueConnectionUtils.getGlueConnection(), allocator));
         installGoogleCredentialsJsonFile(System.getenv());
         setupNativeEnvironmentVariables();
         logger.info("Inside BigQueryCompositeHandler()");
