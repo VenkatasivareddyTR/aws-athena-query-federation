@@ -66,6 +66,7 @@ Parameters:
   LambdaRoleArn:
     Description: "(Optional) A custom role to be used by the Connector lambda"
     Type: String
+    Default: ""
 
 Conditions:
   HasSecurityGroups: !Not [ !Equals [ !Join ["", !Ref SecurityGroupIds], "" ] ]

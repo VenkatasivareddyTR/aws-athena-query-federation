@@ -49,7 +49,7 @@ public class GcsCompositeHandler
     {
         super(new GcsMetadataHandler(allocator, GlueConnectionUtils.getGlueConnection()), new GcsRecordHandler(allocator, GlueConnectionUtils.getGlueConnection()));
         installCaCertificate();
-        installGoogleCredentialsJsonFile(System.getenv());
+        installGoogleCredentialsJsonFile(GlueConnectionUtils.getGlueConnection());
         setupNativeEnvironmentVariables();
     }
 }

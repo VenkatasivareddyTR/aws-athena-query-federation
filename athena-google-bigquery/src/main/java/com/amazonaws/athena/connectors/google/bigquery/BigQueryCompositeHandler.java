@@ -43,7 +43,7 @@ public class BigQueryCompositeHandler
             throws IOException
     {
         super(new BigQueryMetadataHandler(GlueConnectionUtils.getGlueConnection()), new BigQueryRecordHandler(GlueConnectionUtils.getGlueConnection(), allocator));
-        installGoogleCredentialsJsonFile(System.getenv());
+        installGoogleCredentialsJsonFile(GlueConnectionUtils.getGlueConnection());
         setupNativeEnvironmentVariables();
         logger.info("Inside BigQueryCompositeHandler()");
     }

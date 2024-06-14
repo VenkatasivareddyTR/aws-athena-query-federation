@@ -183,6 +183,7 @@ Resources:
               Resource:
                 - !Sub 'arn:${AWS::Partition}:glue:${AWS::Region}:${AWS::AccountId}:connection/${GlueConnection}'
                 - !Sub 'arn:${AWS::Partition}:glue:${AWS::Region}:${AWS::AccountId}:catalog'
+            - !Ref "AWS::NoValue"
 
   FunctionKmsPolicy:
     Condition: CreateKmsPolicy
