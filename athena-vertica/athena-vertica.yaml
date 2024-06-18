@@ -59,7 +59,7 @@ Parameters:
   VerticaConnectionString:
     Description: 'The Vertica connection details to use by default if not catalog specific connection is defined and optionally using SecretsManager (e.g. ${secret_name}).'
     Type: String
-    Default: "jdbc:vertica://<host_name>:<port>/<database>?user=${vertica-username}&password=${vertica-password}"
+    Default: "vertica://jdbc:vertica://<host_name>:<port>/<database>?user=${vertica-username}&password=${vertica-password}"
   PermissionsBoundaryArn:
     Description: "(Optional) An IAM policy ARN to use as the PermissionsBoundary for the created Lambda function's execution role"
     Default: ''
@@ -95,7 +95,7 @@ Resources:
           kms_key_id: !If [NotHasGlueConnectionAndHasKmsKeyId, !Ref KmsKeyId, !Ref "AWS::NoValue"]
           glue_connection: !If [HasGlueConnection, !Ref GlueConnection, !Ref "AWS::NoValue"]
           export_bucket: !If [HasGlueConnection, !Ref "AWS::NoValue", !Ref VerticaExportBucket]
-          default_vertica: !If [HasGlueConnection, !Ref "AWS::NoValue", !Ref VerticaConnectionString]
+          default: !If [HasGlueConnection, !Ref "AWS::NoValue", !Ref VerticaConnectionString]
       FunctionName: !Ref LambdaFunctionName
       Handler: "com.amazonaws.athena.connectors.vertica.VerticaCompositeHandler"
       CodeUri: "./target/athena-vertica-2024.18.2.jar"
