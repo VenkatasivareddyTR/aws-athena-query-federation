@@ -59,7 +59,7 @@ Parameters:
     Type: String
   KerberosAuthEnabled:
     Description: 'Kerberos authentication enabled or not'
-    Default: "false"
+    Default: ""
     Type: String
   KerberosConfigFilesS3Reference:
     Description: 'The S3 bucket reference where kerberos auth config files are uploaded. Applicable for Kerberos auth'
