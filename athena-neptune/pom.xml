@@ -12,6 +12,8 @@
         <!-- make sure gremlin driver version stays within the Neptune supported range -->
         <gremlinDriverVersion>3.7.2</gremlinDriverVersion>
         <neptune.sigv4.signer.version>2.4.0</neptune.sigv4.signer.version>
+        <neptune.rdf4j.version>5.0.2</neptune.rdf4j.version>
+        <neptune.rdf4j.version.jdk8>3.7.7</neptune.rdf4j.version.jdk8>
     </properties>
     <dependencies>
         <dependency>
@@ -124,7 +126,7 @@
         <dependency>
             <groupId>org.eclipse.rdf4j</groupId>
             <artifactId>rdf4j-repository-sparql</artifactId>
-            <version>5.0.2</version>
+            <version>${neptune.rdf4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -213,6 +215,15 @@
         </plugins>
     </build>
     <profiles>
+        <profile>
+            <id>java8</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <properties>
+                <neptune.rdf4j.version>${neptune.rdf4j.version.jdk8}</neptune.rdf4j.version>
+            </properties>
+        </profile>
         <profile>
             <id>java17</id>
             <activation>

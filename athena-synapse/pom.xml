@@ -150,4 +150,15 @@
             <url>https://s3.amazonaws.com/redshift-maven-repository/release</url>
         </repository>
     </repositories>
+    <profiles>
+        <profile>
+            <id>java8</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <properties>
+                <mssql.jdbc.version>${mssql.jdbc.version.jre8}</mssql.jdbc.version>
+            </properties>
+        </profile>
+    </profiles>
 </project>

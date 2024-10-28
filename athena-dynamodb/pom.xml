@@ -8,6 +8,10 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>athena-dynamodb</artifactId>
     <version>2022.47.1</version>
+    <properties>
+    <dynamodb.local.version>2.2.1</dynamodb.local.version>
+    <dynamodb.local.version.jdk8>1.21.0</dynamodb.local.version.jdk8>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>com.amazonaws</groupId>
@@ -34,7 +38,7 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>DynamoDBLocal</artifactId>
-            <version>2.2.1</version>
+            <version>${dynamodb.local.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -136,6 +140,16 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire.failsafe.version}</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <sqlite4java.library.path>${project.basedir}/native-libs</sqlite4java.library.path>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>${mvn.shade.plugin.version}</version>
                 <configuration>
@@ -174,4 +188,15 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>java8</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <properties>
+                <dynamodb.local.version>${dynamodb.local.version.jdk8}</dynamodb.local.version>
+            </properties>
+        </profile>
+    </profiles>
 </project>

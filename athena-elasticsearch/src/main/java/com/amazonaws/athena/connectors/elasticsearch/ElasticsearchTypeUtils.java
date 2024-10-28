@@ -420,9 +420,9 @@ class ElasticsearchTypeUtils
                         long epochSeconds;
                         double nanoSeconds;
                         try {
-                            ZonedDateTime zonedDateTime = ZonedDateTime.parse((String) value,
-                                    DateTimeFormatter.ISO_ZONED_DATE_TIME.withZone(ZoneId.of("UTC"))
-                                            .withResolverStyle(ResolverStyle.SMART));
+                            DateTimeFormatter formatter = DateTimeFormatter.ISO_ZONED_DATE_TIME.withResolverStyle(ResolverStyle.SMART);
+                            ZonedDateTime zonedDateTime = ZonedDateTime.parse((String) value, formatter)
+                                    .withZoneSameInstant(ZoneId.of("UTC"));
                             epochSeconds = zonedDateTime.toEpochSecond();
                             nanoSeconds = zonedDateTime.getNano();
                         }

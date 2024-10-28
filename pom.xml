@@ -27,7 +27,8 @@
         <junit.version>4.13.2</junit.version>
         <jqwik.version>1.9.1</jqwik.version>
         <assertj.version>3.26.3</assertj.version>
-        <testng.version>7.5.1</testng.version>
+        <testng.version>7.10.2</testng.version>
+        <testng.version.jdk8>7.5.1</testng.version.jdk8>
          <!--- to meet engine version 2.12.6 -->
         <fasterxml.jackson.version>2.18.0</fasterxml.jackson.version>
         <surefire.failsafe.version>3.5.1</surefire.failsafe.version>
@@ -39,6 +40,7 @@
         <log4j2.cachefile.transformer.version>2.15</log4j2.cachefile.transformer.version>
         <apache.httpclient.version>4.5.14</apache.httpclient.version>
         <mssql.jdbc.version>12.8.1.jre11</mssql.jdbc.version>
+        <mssql.jdbc.version.jre8>12.8.1.jre8</mssql.jdbc.version.jre8>
         <commons.cli.version>1.9.0</commons.cli.version>
         <spark.version>3.2.1</spark.version>
         <test.system.rules.version>1.19.0</test.system.rules.version>
@@ -387,6 +389,15 @@
         </plugins>
     </build>
     <profiles>
+        <profile>
+            <id>java8</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <properties>
+                <testng.version>${testng.version.jdk8}</testng.version>
+            </properties>
+        </profile>
         <profile>
             <id>java17</id>
             <activation>

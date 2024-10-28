@@ -10,8 +10,8 @@
     <name>Athena Kafka Connector</name>
     <version>2022.47.1</version>
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <apache.avro.version>1.12.0</apache.avro.version>
+        <apache.avro.version.jdk8>1.8.2</apache.avro.version.jdk8>
     </properties>
     <dependencies>
         <dependency>
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
-            <version>1.12.0</version>
+            <version>${apache.avro.version}</version>
         </dependency>
         <dependency>
             <groupId>io.confluent</groupId>
@@ -213,4 +213,16 @@
             <url>https://packages.confluent.io/maven/</url>
         </repository>
     </repositories>
+    <profiles>
+        <profile>
+            <id>java8</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <properties>
+                <apache.avro.version>${apache.avro.version.jdk8}</apache.avro.version>
+                <testng.version>${testng.version.jdk8}</testng.version>
+            </properties>
+        </profile>
+    </profiles>
 </project>

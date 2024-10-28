@@ -155,4 +155,15 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>java8</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <properties>
+                <testng.version>${testng.version.jdk8}</testng.version>
+            </properties>
+        </profile>
+    </profiles>
 </project>
