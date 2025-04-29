@@ -35,13 +35,22 @@ import com.amazonaws.athena.connector.lambda.security.EncryptionKey;
 import com.amazonaws.athena.connector.lambda.security.EncryptionKeyFactory;
 import com.amazonaws.athena.connector.lambda.security.FederatedIdentity;
 import com.amazonaws.athena.connector.lambda.security.LocalKeyFactory;
+import com.google.api.gax.paging.Page;
 import com.google.api.gax.rpc.ServerStream;
 import com.google.api.gax.rpc.ServerStreamingCallable;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
+import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.Job;
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDefinition;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.storage.v1.ArrowSchema;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
 import com.google.cloud.bigquery.storage.v1.CreateReadSessionRequest;
@@ -81,6 +90,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -89,12 +99,15 @@ import java.util.UUID;
 
 import static com.amazonaws.athena.connector.lambda.domain.predicate.Constraints.DEFAULT_NO_LIMIT;
 import static com.amazonaws.athena.connectors.google.bigquery.BigQueryTestUtils.getBlockTestSchema;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -139,6 +152,8 @@ public class BigQueryRecordHandlerTest
     private MockedStatic<MessageSerializer> messageSer;
     MockedConstruction<VectorSchemaRoot> mockedDefaultVectorSchemaRoot;
     MockedConstruction<VectorLoader> mockedDefaultVectorLoader;
+    @Mock
+    private Job queryJob;
 
     public List<FieldVector> getFieldVectors()
     {
@@ -239,10 +254,7 @@ public class BigQueryRecordHandlerTest
     @After
     public void close()
     {
-        mockedDefaultVectorLoader.close();
-        mockedDefaultVectorSchemaRoot.close();
         mockedStatic.close();
-        messageSer.close();
         allocator.close();
     }
 
@@ -319,6 +331,82 @@ public class BigQueryRecordHandlerTest
 
             //Ensure that there was a spill so that we can read the spilled block.
             assertTrue(spillWriter.spilled());
+            mockedDefaultVectorLoader.close();
+            mockedDefaultVectorSchemaRoot.close();
+            messageSer.close();
+        }
+    }
+
+    @Test
+    public void testReadWithConstraint_QueryPassThrough()
+    {
+        Map<String, String> passthroughArgs = Map.of(
+                "schemaFunctionName", "SYSTEM.QUERY",
+                "QUERY", "SELECT * FROM test_table");
+        try (ReadRecordsRequest request = new ReadRecordsRequest(
+                federatedIdentity,
+                BigQueryTestUtils.PROJECT_1_NAME,
+                "queryId",
+                new TableName("dataset1", "table1"),
+                getBlockTestSchema(),
+                Split.newBuilder(S3SpillLocation.newBuilder()
+                                .withBucket(bucket)
+                                .withPrefix(prefix)
+                                .withSplitId(UUID.randomUUID().toString())
+                                .withQueryId(UUID.randomUUID().toString())
+                                .withIsDirectory(true)
+                                .build(),
+                        keyFactory.create()).build(),
+                new Constraints(Collections.emptyMap(), Collections.emptyList(), Collections.emptyList(), DEFAULT_NO_LIMIT, passthroughArgs),
+                0,
+                0)) {
+
+            QueryStatusChecker queryStatusChecker = mock(QueryStatusChecker.class);
+            when(queryStatusChecker.isQueryRunning()).thenReturn(true);
+            when(bigQuery.create(any(JobInfo.class))).thenReturn(queryJob);
+            when(queryJob.isDone()).thenReturn(false).thenReturn(true);
+
+            // added schema with bool,int,string,float columns
+            List<com.google.cloud.bigquery.Field> testSchemaFields = Arrays.asList(com.google.cloud.bigquery.Field.of(
+                    "bool1", LegacySQLTypeName.BOOLEAN),
+                    com.google.cloud.bigquery.Field.of(
+                            "int1", LegacySQLTypeName.INTEGER),
+                    com.google.cloud.bigquery.Field.of(
+                            "string1", LegacySQLTypeName.STRING),
+                    com.google.cloud.bigquery.Field.of(
+                            "float1", LegacySQLTypeName.FLOAT));
+            com.google.cloud.bigquery.Schema tableSchema = com.google.cloud.bigquery.Schema.of(testSchemaFields);
+
+            List<FieldValue> bigQueryRowValue = Arrays.asList(FieldValue.of(FieldValue.Attribute.PRIMITIVE, "true"),
+                    FieldValue.of(FieldValue.Attribute.PRIMITIVE, "1"),
+                    FieldValue.of(FieldValue.Attribute.PRIMITIVE, "test"),
+                    FieldValue.of(FieldValue.Attribute.PRIMITIVE, "10.0"));
+            FieldValueList fieldValueList = FieldValueList.of(bigQueryRowValue,
+                    FieldList.of(testSchemaFields));
+            List<FieldValueList> tableRows = List.of(fieldValueList);
+
+            Page<FieldValueList> pageNoSchema = new BigQueryPage<>(tableRows);
+            TableResult result = new TableResult(tableSchema, tableRows.size(), pageNoSchema);
+            when(queryJob.getQueryResults()).thenReturn(result);
+
+            //Execute the test
+            bigQueryRecordHandler.readWithConstraint(spillWriter, request, queryStatusChecker);
+
+            // Verify
+            verify(bigQuery).create(any(JobInfo.class));
+            verify(queryJob).getQueryResults();
+
+            //Job Already Exists Scenario
+            when(bigQuery.create(any(JobInfo.class))).thenThrow(new BigQueryException(409, "Job Already Exists"));
+
+            //Execute the test
+            BigQueryException exception = assertThrows(BigQueryException.class, () ->
+                    bigQueryRecordHandler.readWithConstraint(spillWriter, request, queryStatusChecker)
+            );
+
+            assertTrue(exception.getMessage().contains("Job Already Exists"));
+        } catch (Exception e) {
+            fail("Unexpected exception occurred: " + e.getMessage());
         }
     }
 }
