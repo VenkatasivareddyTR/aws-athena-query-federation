@@ -21,7 +21,7 @@ package com.amazonaws.athena.connectors.google.bigquery.qpt;
 
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -44,8 +44,8 @@ public class BigQueryQueryPassthroughTest {
 
     @Test
     public void testGetFunctionArguments() {
-        assertEquals(Arrays.asList("QUERY"), bigQueryQueryPassthrough.getFunctionArguments());
-        assertNotEquals(Arrays.asList("Test_QUERY"), bigQueryQueryPassthrough.getFunctionArguments());
+        assertEquals(List.of("QUERY"), bigQueryQueryPassthrough.getFunctionArguments());
+        assertNotEquals(List.of("Test_QUERY"), bigQueryQueryPassthrough.getFunctionArguments());
     }
 
 }

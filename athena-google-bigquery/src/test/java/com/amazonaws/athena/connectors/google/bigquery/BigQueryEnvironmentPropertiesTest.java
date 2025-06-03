@@ -36,11 +36,12 @@ public class BigQueryEnvironmentPropertiesTest {
 
     private Map<String, String> connectionProperties;
     private BigQueryEnvironmentProperties bigQueryEnvironmentProperties;
+    private static final String SECRET_NAME_VALUE = "bigQuery_Secret";
 
     @Before
     public void setup() {
         connectionProperties = new HashMap<>();
-        connectionProperties.put(SECRET_NAME, "bigQuery_Secret");
+        connectionProperties.put(SECRET_NAME, SECRET_NAME_VALUE);
         bigQueryEnvironmentProperties = new BigQueryEnvironmentProperties();
     }
 
@@ -48,15 +49,16 @@ public class BigQueryEnvironmentPropertiesTest {
     public void testConnectionPropertiesToEnvironment_When_ProjectId_NotPresent() {
         Map<String, String> result = bigQueryEnvironmentProperties.connectionPropertiesToEnvironment(connectionProperties);
         assertNull(result.get(GCP_PROJECT_ID));
-        assertEquals("bigQuery_Secret", result.get(ENV_BIG_QUERY_CREDS_SM_ID));
+        assertEquals(SECRET_NAME_VALUE, result.get(ENV_BIG_QUERY_CREDS_SM_ID));
     }
 
     @Test
     public void testConnectionPropertiesToEnvironment_When_ProjectId_Present() {
-        connectionProperties.put(PROJECT_ID, "testProject");
+        String expectedValue = "testProject";
+        connectionProperties.put(PROJECT_ID, expectedValue);
         Map<String, String> result = bigQueryEnvironmentProperties.connectionPropertiesToEnvironment(connectionProperties);
-        assertEquals("testProject", result.get(GCP_PROJECT_ID));
-        assertEquals("bigQuery_Secret", result.get(ENV_BIG_QUERY_CREDS_SM_ID));
+        assertEquals(expectedValue, result.get(GCP_PROJECT_ID));
+        assertEquals(SECRET_NAME_VALUE, result.get(ENV_BIG_QUERY_CREDS_SM_ID));
     }
 
 }

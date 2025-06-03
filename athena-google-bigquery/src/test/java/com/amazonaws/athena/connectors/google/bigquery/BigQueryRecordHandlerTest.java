@@ -383,7 +383,7 @@ public class BigQueryRecordHandlerTest
                     FieldValue.of(FieldValue.Attribute.PRIMITIVE, "10.0"));
             FieldValueList fieldValueList = FieldValueList.of(bigQueryRowValue,
                     FieldList.of(testSchemaFields));
-            List<FieldValueList> tableRows = Arrays.asList(fieldValueList);
+            List<FieldValueList> tableRows = List.of(fieldValueList);
 
             Page<FieldValueList> pageNoSchema = new BigQueryPage<>(tableRows);
             TableResult result = new TableResult(tableSchema, tableRows.size(), pageNoSchema);

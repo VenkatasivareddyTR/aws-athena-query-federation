@@ -128,6 +128,78 @@ public class BigQueryFederationExpressionParserTest
         assertEquals(negateClause, "(-110)");
     }
 
+    @Test
+    public void testCreateSqlForComplexExpressionContent_DivideFunction()
+    {
+        FunctionName divideFunction = StandardFunctions.DIVIDE_FUNCTION_NAME.getFunctionName();
+        String divClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(divideFunction, intType, ImmutableList.of("`col1`", "10"));
+        assertEquals(divClause, "(`col1` / 10)");
+    }
+
+    @Test
+    public void testCreateSqlForComplexExpressionContent_MulFunction()
+    {
+        FunctionName mulFunction = StandardFunctions.MULTIPLY_FUNCTION_NAME.getFunctionName();
+        String mulClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(mulFunction, intType, ImmutableList.of("`col1`", "10"));
+        assertEquals(mulClause, "(`col1` * 10)");
+    }
+
+    @Test
+    public void testCreateSqlForComplexExpressionContent_EqualFunction()
+    {
+        FunctionName equalFunction = StandardFunctions.EQUAL_OPERATOR_FUNCTION_NAME.getFunctionName();
+        String equalClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(equalFunction, intType, ImmutableList.of("`col1`", "10"));
+        assertEquals(equalClause, "(`col1` = 10)");
+    }
+
+    @Test
+    public void testCreateSqlForComplexExpressionContent_GreaterEqlFunction()
+    {
+        FunctionName grtEqlFunction = StandardFunctions.GREATER_THAN_OR_EQUAL_OPERATOR_FUNCTION_NAME.getFunctionName();
+        String grtEqlClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(grtEqlFunction, intType, ImmutableList.of("`col1`", "10"));
+        assertEquals(grtEqlClause, "(`col1` >= 10)");
+    }
+
+    @Test
+    public void testCreateSqlForComplexExpressionContent_LessEqlFunction()
+    {
+        FunctionName lesEqlFunction = StandardFunctions.LESS_THAN_OR_EQUAL_OPERATOR_FUNCTION_NAME.getFunctionName();
+        String lesEqlClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(lesEqlFunction, intType, ImmutableList.of("`col1`", "10"));
+        assertEquals(lesEqlClause, "(`col1` <= 10)");
+    }
+
+    @Test
+    public void testCreateSqlForComplexExpressionContent_LikeFunction()
+    {
+        FunctionName likeFunction = StandardFunctions.LIKE_PATTERN_FUNCTION_NAME.getFunctionName();
+        String likeClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(likeFunction, intType, ImmutableList.of("110", "120"));
+        assertEquals(likeClause, "(110 LIKE 120)");
+    }
+
+    @Test
+    public void testCreateSqlForComplexExpressionContent_NotFunction()
+    {
+        FunctionName notFunction = StandardFunctions.NOT_FUNCTION_NAME.getFunctionName();
+        String notClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(notFunction, intType, ImmutableList.of("110"));
+        assertEquals(notClause, "( NOT 110)");
+    }
+
+    @Test
+    public void testCreateSqlForComplexExpressionContent_IsDistinctFunction()
+    {
+        FunctionName isDistFunction = StandardFunctions.IS_DISTINCT_FROM_OPERATOR_FUNCTION_NAME.getFunctionName();
+        String isDistClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(isDistFunction, intType, ImmutableList.of("110", "120"));
+        assertEquals(isDistClause, "(110 IS DISTINCT FROM 120)");
+    }
+
+    @Test
+    public void testCreateSqlForComplexExpressionContent_NullIfFunction()
+    {
+        FunctionName nullIfFunction = StandardFunctions.NULLIF_FUNCTION_NAME.getFunctionName();
+        String nullIfClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(nullIfFunction, intType, ImmutableList.of("110", "120"));
+        assertEquals(nullIfClause, "(NULLIF(110, 120))");
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testCreateSqlForComplexExpressionContent_InvalidBinaryInput()
     {
