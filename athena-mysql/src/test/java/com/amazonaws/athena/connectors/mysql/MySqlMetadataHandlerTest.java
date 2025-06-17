@@ -19,6 +19,7 @@
  */
 package com.amazonaws.athena.connectors.mysql;
 
+import com.amazonaws.athena.connector.lambda.data.Block;
 import com.amazonaws.athena.connector.lambda.data.BlockAllocator;
 import com.amazonaws.athena.connector.lambda.data.BlockAllocatorImpl;
 import com.amazonaws.athena.connector.lambda.data.BlockUtils;
@@ -27,6 +28,8 @@ import com.amazonaws.athena.connector.lambda.data.SchemaBuilder;
 import com.amazonaws.athena.connector.lambda.domain.Split;
 import com.amazonaws.athena.connector.lambda.domain.TableName;
 import com.amazonaws.athena.connector.lambda.domain.predicate.Constraints;
+import com.amazonaws.athena.connector.lambda.metadata.GetDataSourceCapabilitiesRequest;
+import com.amazonaws.athena.connector.lambda.metadata.GetDataSourceCapabilitiesResponse;
 import com.amazonaws.athena.connector.lambda.metadata.GetSplitsRequest;
 import com.amazonaws.athena.connector.lambda.metadata.GetSplitsResponse;
 import com.amazonaws.athena.connector.lambda.metadata.GetTableLayoutRequest;
@@ -35,6 +38,7 @@ import com.amazonaws.athena.connector.lambda.metadata.GetTableResponse;
 import com.amazonaws.athena.connector.lambda.metadata.GetTableRequest;
 import com.amazonaws.athena.connector.lambda.metadata.ListTablesRequest;
 import com.amazonaws.athena.connector.lambda.metadata.ListTablesResponse;
+import com.amazonaws.athena.connector.lambda.metadata.optimizations.OptimizationSubType;
 import com.amazonaws.athena.connector.lambda.security.FederatedIdentity;
 import com.amazonaws.athena.connectors.jdbc.TestBase;
 import com.amazonaws.athena.connectors.jdbc.connection.DatabaseConnectionConfig;
@@ -59,6 +63,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +72,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.amazonaws.athena.connectors.mysql.MySqlConstants.MYSQL_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.nullable;
 
 public class MySqlMetadataHandlerTest
@@ -81,6 +89,8 @@ public class MySqlMetadataHandlerTest
     private SecretsManagerClient secretsManager;
     private AthenaClient athena;
     private BlockAllocator blockAllocator;
+    private static final String QUERY_ID = "queryId";
+    private static final String CATALOG_NAME = "testCatalogName";
 
     @Before
     public void setup()
@@ -342,5 +352,74 @@ public class MySqlMetadataHandlerTest
 
         GetTableResponse getTableResponse = this.mySqlMetadataHandler.doGetTable(this.blockAllocator,
                 new GetTableRequest(this.federatedIdentity, "testQueryId", "testCatalog", inputTableName, Collections.emptyMap()));
+    }
+
+    @Test
+    public void doGetDataSourceCapabilities_DefaultRequest_ReturnsExpectedCapabilities()
+    {
+        BlockAllocator allocator = new BlockAllocatorImpl();
+        GetDataSourceCapabilitiesRequest request =
+                new GetDataSourceCapabilitiesRequest(federatedIdentity, QUERY_ID, CATALOG_NAME);
+
+        GetDataSourceCapabilitiesResponse response =
+                mySqlMetadataHandler.doGetDataSourceCapabilities(allocator, request);
+
+        Map<String, List<OptimizationSubType>> capabilities = response.getCapabilities();
+
+        assertEquals(CATALOG_NAME, response.getCatalogName());
+
+        // Filter pushdown
+        List<OptimizationSubType> filterPushdown = capabilities.get("supports_filter_pushdown");
+        assertNotNull("Expected supports_filter_pushdown capability to be present", filterPushdown);
+        assertEquals(2, filterPushdown.size());
+        assertTrue("Expected filter pushdown to contain 'sorted_range_set' subtype",
+                filterPushdown.stream().anyMatch(subType -> subType.getSubType().equals("sorted_range_set")));
+        assertTrue("Expected filter pushdown to contain 'nullable_comparison' subtype",
+                filterPushdown.stream().anyMatch(subType -> subType.getSubType().equals("nullable_comparison")));
+
+        // Complex expression pushdown
+        List<OptimizationSubType> complexPushdown = capabilities.get("supports_complex_expression_pushdown");
+        assertNotNull("Expected supports_complex_expression_pushdown capability to be present", complexPushdown);
+        assertEquals(1, complexPushdown.size());
+        assertTrue("Expected complex pushdown to contain 'supported_function_expression_types' subtype with non-empty properties",
+                complexPushdown.stream().anyMatch(subType ->
+                subType.getSubType().equals("supported_function_expression_types") &&
+                        !subType.getProperties().isEmpty()));
+    }
+
+    @Test
+    public void doGetSplits_queryPassthrough_returnsSingleSplit()
+    {
+        BlockAllocator blockAllocator = new BlockAllocatorImpl();
+        TableName tableName = new TableName("testSchema", "testTable");
+
+        Constraints constraints = Mockito.mock(Constraints.class);
+        Mockito.when(constraints.isQueryPassThrough()).thenReturn(true);
+        Map<String, String> passthroughArgs = new HashMap<>();
+        passthroughArgs.put("arg1", "val1");
+        passthroughArgs.put("arg2", "val2");
+        Mockito.when(constraints.getQueryPassthroughArguments()).thenReturn(passthroughArgs);
+
+        Block partitions = Mockito.mock(Block.class);
+
+        GetSplitsRequest request = new GetSplitsRequest(
+                federatedIdentity,
+                "queryId",
+                CATALOG_NAME,
+                tableName,
+                partitions,
+                Collections.emptyList(),
+                constraints,
+                null
+        );
+
+        GetSplitsResponse response = mySqlMetadataHandler.doGetSplits(blockAllocator, request);
+
+        // Assertions
+        assertEquals(CATALOG_NAME, response.getCatalogName());
+        assertEquals(1, response.getSplits().size());
+
+        Map<String, String> actualProps = response.getSplits().iterator().next().getProperties();
+        assertEquals(passthroughArgs, actualProps);
     }
 }
