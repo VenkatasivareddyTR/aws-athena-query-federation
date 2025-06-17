@@ -50,6 +50,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.amazonaws.athena.connectors.mysql.MySqlConstants.MYSQL_NAME;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -112,32 +114,7 @@ public class MySqlRecordHandlerTest
         ValueSet valueSet1 = Mockito.mock(SortedRangeSet.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(valueSet1.getRanges().getOrderedRanges()).thenReturn(ImmutableList.of(range1a, range1b));
 
-        ValueSet valueSet2 = getRangeSet(Marker.Bound.EXACTLY, "1", Marker.Bound.BELOW, "10");
-        ValueSet valueSet3 = getRangeSet(Marker.Bound.ABOVE, 2L, Marker.Bound.EXACTLY, 20L);
-        ValueSet valueSet4 = getSingleValueSet(1.1F);
-        ValueSet valueSet5 = getSingleValueSet(1);
-        ValueSet valueSet6 = getSingleValueSet(0);
-        ValueSet valueSet7 = getSingleValueSet(1.2d);
-        ValueSet valueSet8 = getSingleValueSet(true);
-
-        Constraints constraints = new Constraints(
-            new ImmutableMap.Builder<String, ValueSet>()
-                .put("testCol1", valueSet1)
-                .put("testCol2", valueSet2)
-                .put("testCol3", valueSet3)
-                .put("testCol4", valueSet4)
-                .put("testCol5", valueSet5)
-                .put("testCol6", valueSet6)
-                .put("testCol7", valueSet7)
-                .put("testCol8", valueSet8)
-                .build(),
-            ImmutableList.of(),
-            ImmutableList.of(
-                new OrderByField("testCol1", Direction.ASC_NULLS_FIRST),
-                new OrderByField("testCol3", Direction.DESC_NULLS_FIRST)
-            ),
-            100L
-        );
+        Constraints constraints = getConstraints(valueSet1, Collections.emptyMap());
 
         String expectedSql = "SELECT `testCol1`, `testCol2`, `testCol3`, `testCol4`, `testCol5`, `testCol6`, `testCol7`, `testCol8` FROM `testSchema`.`testTable` PARTITION(p0)  WHERE (`testCol1` IN (?,?)) AND ((`testCol2` >= ? AND `testCol2` < ?)) AND ((`testCol3` > ? AND `testCol3` <= ?)) AND (`testCol4` = ?) AND (`testCol5` = ?) AND (`testCol6` = ?) AND (`testCol7` = ?) AND (`testCol8` = ?) ORDER BY `testCol1` ASC, ISNULL(`testCol3`) DESC, `testCol3` DESC LIMIT 100";
         PreparedStatement expectedPreparedStatement = Mockito.mock(PreparedStatement.class);
@@ -157,6 +134,44 @@ public class MySqlRecordHandlerTest
         Mockito.verify(preparedStatement, Mockito.times(1)).setByte(9, (byte) 0);
         Mockito.verify(preparedStatement, Mockito.times(1)).setDouble(10, 1.2d);
         Mockito.verify(preparedStatement, Mockito.times(1)).setBoolean(11, true);
+
+        Map<String, String> passthroughArgs = new HashMap<>();
+        String qptQuery = "select * from testSchema.testTable";
+        passthroughArgs.put("schemaFunctionName", "system.query");
+        passthroughArgs.put("QUERY", qptQuery);
+        constraints = getConstraints(valueSet1, passthroughArgs);
+        Mockito.when(this.connection.prepareStatement(Mockito.eq(qptQuery))).thenReturn(expectedPreparedStatement);
+        preparedStatement = this.mySqlRecordHandler.buildSplitSql(this.connection, "testCatalogName", tableName, schema, constraints, split);
+        Assert.assertEquals(expectedPreparedStatement, preparedStatement);
+    }
+
+    private Constraints getConstraints(ValueSet valueSet1, Map<String, String> queryPassthroughArgs) {
+        ValueSet valueSet2 = getRangeSet(Marker.Bound.EXACTLY, "1", Marker.Bound.BELOW, "10");
+        ValueSet valueSet3 = getRangeSet(Marker.Bound.ABOVE, 2L, Marker.Bound.EXACTLY, 20L);
+        ValueSet valueSet4 = getSingleValueSet(1.1F);
+        ValueSet valueSet5 = getSingleValueSet(1);
+        ValueSet valueSet6 = getSingleValueSet(0);
+        ValueSet valueSet7 = getSingleValueSet(1.2d);
+        ValueSet valueSet8 = getSingleValueSet(true);
+
+        return new Constraints(
+                new ImmutableMap.Builder<String, ValueSet>()
+                        .put("testCol1", valueSet1)
+                        .put("testCol2", valueSet2)
+                        .put("testCol3", valueSet3)
+                        .put("testCol4", valueSet4)
+                        .put("testCol5", valueSet5)
+                        .put("testCol6", valueSet6)
+                        .put("testCol7", valueSet7)
+                        .put("testCol8", valueSet8)
+                        .build(),
+                ImmutableList.of(),
+                ImmutableList.of(
+                        new OrderByField("testCol1", Direction.ASC_NULLS_FIRST),
+                        new OrderByField("testCol3", Direction.DESC_NULLS_FIRST)
+                ),
+                100L, queryPassthroughArgs
+        );
     }
 
     private ValueSet getSingleValueSet(Object value) {
