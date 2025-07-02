@@ -135,7 +135,7 @@ public class BigQueryFederationExpressionParserTest
     {
         FunctionName divideFunction = StandardFunctions.DIVIDE_FUNCTION_NAME.getFunctionName();
         String divClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(divideFunction, intType, ImmutableList.of("`col1`", INPUT_ARGUMENT1));
-        assertEquals(divClause, "(`col1` / 110)");
+        assertEquals("(`col1` / 110)", divClause);
     }
 
     @Test
@@ -143,7 +143,7 @@ public class BigQueryFederationExpressionParserTest
     {
         FunctionName mulFunction = StandardFunctions.MULTIPLY_FUNCTION_NAME.getFunctionName();
         String mulClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(mulFunction, intType, ImmutableList.of("`col1`", INPUT_ARGUMENT1));
-        assertEquals(mulClause, "(`col1` * 110)");
+        assertEquals("(`col1` * 110)", mulClause);
     }
 
     @Test
@@ -151,7 +151,7 @@ public class BigQueryFederationExpressionParserTest
     {
         FunctionName equalFunction = StandardFunctions.EQUAL_OPERATOR_FUNCTION_NAME.getFunctionName();
         String equalClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(equalFunction, intType, ImmutableList.of("`col1`", INPUT_ARGUMENT1));
-        assertEquals(equalClause, "(`col1` = 110)");
+        assertEquals("(`col1` = 110)", equalClause);
     }
 
     @Test
@@ -159,7 +159,7 @@ public class BigQueryFederationExpressionParserTest
     {
         FunctionName grtEqlFunction = StandardFunctions.GREATER_THAN_OR_EQUAL_OPERATOR_FUNCTION_NAME.getFunctionName();
         String grtEqlClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(grtEqlFunction, intType, ImmutableList.of("`col1`", INPUT_ARGUMENT1));
-        assertEquals(grtEqlClause, "(`col1` >= 110)");
+        assertEquals("(`col1` >= 110)", grtEqlClause);
     }
 
     @Test
@@ -167,7 +167,7 @@ public class BigQueryFederationExpressionParserTest
     {
         FunctionName lesEqlFunction = StandardFunctions.LESS_THAN_OR_EQUAL_OPERATOR_FUNCTION_NAME.getFunctionName();
         String lesEqlClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(lesEqlFunction, intType, ImmutableList.of("`col1`", INPUT_ARGUMENT1));
-        assertEquals(lesEqlClause, "(`col1` <= 110)");
+        assertEquals("(`col1` <= 110)", lesEqlClause);
     }
 
     @Test
@@ -175,7 +175,7 @@ public class BigQueryFederationExpressionParserTest
     {
         FunctionName likeFunction = StandardFunctions.LIKE_PATTERN_FUNCTION_NAME.getFunctionName();
         String likeClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(likeFunction, intType, ImmutableList.of(INPUT_ARGUMENT1, INPUT_ARGUMENT2));
-        assertEquals(likeClause, "(110 LIKE 120)");
+        assertEquals("(110 LIKE 120)", likeClause);
     }
 
     @Test
@@ -183,7 +183,7 @@ public class BigQueryFederationExpressionParserTest
     {
         FunctionName notFunction = StandardFunctions.NOT_FUNCTION_NAME.getFunctionName();
         String notClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(notFunction, intType, ImmutableList.of(INPUT_ARGUMENT1));
-        assertEquals(notClause, "( NOT 110)");
+        assertEquals("( NOT 110)", notClause);
     }
 
     @Test
@@ -191,7 +191,7 @@ public class BigQueryFederationExpressionParserTest
     {
         FunctionName isDistFunction = StandardFunctions.IS_DISTINCT_FROM_OPERATOR_FUNCTION_NAME.getFunctionName();
         String isDistClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(isDistFunction, intType, ImmutableList.of(INPUT_ARGUMENT1, INPUT_ARGUMENT2));
-        assertEquals(isDistClause, "(110 IS DISTINCT FROM 120)");
+        assertEquals("(110 IS DISTINCT FROM 120)", isDistClause);
     }
 
     @Test
@@ -199,7 +199,7 @@ public class BigQueryFederationExpressionParserTest
     {
         FunctionName nullIfFunction = StandardFunctions.NULLIF_FUNCTION_NAME.getFunctionName();
         String nullIfClause = bigQueryExpressionParser.mapFunctionToDataSourceSyntax(nullIfFunction, intType, ImmutableList.of(INPUT_ARGUMENT1, INPUT_ARGUMENT2));
-        assertEquals(nullIfClause, "(NULLIF(110, 120))");
+        assertEquals("(NULLIF(110, 120))", nullIfClause);
     }
 
     @Test(expected = IllegalArgumentException.class)

@@ -84,6 +84,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
@@ -316,7 +317,7 @@ public class BigQueryMetadataHandlerTest
     }
 
     @Test
-    public void testDoGetQueryPassthroughSchema_WhenEnabled_ShouldGetSucceeded() throws Exception {
+    public void testDoGetQueryPassthroughSchema_WhenEnabled_ShouldGetSucceeded() {
         Map<String, String> queryPassthroughParameters = Map.of(
                 SCHEMA_FUNCTION_NAME, "system.query",
                 ENABLE_QUERY_PASSTHROUGH, "true",
@@ -347,11 +348,13 @@ public class BigQueryMetadataHandlerTest
             assertEquals("catalog", response.getCatalogName());
             assertEquals(1, response.getSchema().getFields().size());
             verify(bigQuery).create(any(JobInfo.class));
+        } catch (Exception e) {
+            fail("Unexpected exception occurred: " + e.getMessage());
         }
     }
 
     @Test
-    public void testDoGetQueryPassthroughSchema_WhenDisabled_ShouldThrowException() throws Exception {
+    public void testDoGetQueryPassthroughSchema_WhenDisabled_ShouldThrowException() {
         try (GetTableRequest getTableRequest = new GetTableRequest(federatedIdentity,
                 QUERY_ID, CATALOG,
                 new TableName("testSchema", "testTable"), Collections.emptyMap())) {
@@ -359,6 +362,8 @@ public class BigQueryMetadataHandlerTest
             Exception e = assertThrows(IllegalArgumentException.class, () ->
                     bigQueryMetadataHandler.doGetQueryPassthroughSchema(blockAllocator, getTableRequest));
             assertTrue(e.getMessage().contains("No Query passed through"));
+        } catch (Exception e) {
+            fail("Unexpected exception occurred: " + e.getMessage());
         }
     }
 }

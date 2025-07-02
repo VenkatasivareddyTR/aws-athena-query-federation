@@ -68,6 +68,7 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -292,89 +293,107 @@ public class BigQueryUtilsTest
     }
 
     @Test
-    public void testGetObjectFromFieldValueWithDate() throws ParseException {
+    public void testGetObjectFromFieldValueWithDate() {
         FieldValue dateValue = FieldValue.of(FieldValue.Attribute.PRIMITIVE, "2023-01-01");
         org.apache.arrow.vector.types.pojo.Field dateField =
                 org.apache.arrow.vector.types.pojo.Field.nullable(FIELD_NAME, new ArrowType.Date(DateUnit.DAY));
-
-        Object result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, dateValue, dateField, false);
-        assertNotNull(result);
-        assertInstanceOf(Long.class, result);
-        assertEquals(19357L, result);
+        try {
+            Object result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, dateValue, dateField, false);
+            assertNotNull(result);
+            assertInstanceOf(Long.class, result);
+            assertEquals(19357L, result);
+        } catch (ParseException e) {
+            fail("Unexpected ParseException Occurred: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testGetObjectFromFieldValueWithDateTime() throws ParseException {
+    public void testGetObjectFromFieldValueWithDateTime(){
         FieldValue dateTimeValue = FieldValue.of(FieldValue.Attribute.PRIMITIVE, "2023-01-01T12:00:00");
         org.apache.arrow.vector.types.pojo.Field dateTimeField =
                 org.apache.arrow.vector.types.pojo.Field.nullable(FIELD_NAME, new ArrowType.Date(DateUnit.MILLISECOND));
+        try {
+            Object result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, dateTimeValue, dateTimeField, false);
+            assertNotNull(result);
+            assertInstanceOf(Date.class, result);
 
-        Object result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, dateTimeValue, dateTimeField, false);
-        assertNotNull(result);
-        assertInstanceOf(Date.class, result);
+            dateTimeValue = FieldValue.of(FieldValue.Attribute.PRIMITIVE, "2023-01-01T12:00:00.000000");
+            dateTimeField = org.apache.arrow.vector.types.pojo.Field.nullable(FIELD_NAME, new ArrowType.Date(DateUnit.MILLISECOND));
 
-        dateTimeValue = FieldValue.of(FieldValue.Attribute.PRIMITIVE, "2023-01-01T12:00:00.000000");
-        dateTimeField = org.apache.arrow.vector.types.pojo.Field.nullable(FIELD_NAME, new ArrowType.Date(DateUnit.MILLISECOND));
-
-        result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, dateTimeValue, dateTimeField, false);
-        assertNotNull(result);
-        assertInstanceOf(LocalDateTime.class, result);
-        assertEquals(LocalDateTime.of(2023, 1, 1, 12, 0, 0), result);
+            result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, dateTimeValue, dateTimeField, false);
+            assertNotNull(result);
+            assertInstanceOf(LocalDateTime.class, result);
+            assertEquals(LocalDateTime.of(2023, 1, 1, 12, 0, 0), result);
+        } catch (ParseException e) {
+            fail("Unexpected ParseException Occurred: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testGetObjectFromFieldValueWithTimestamp() throws ParseException {
+    public void testGetObjectFromFieldValueWithTimestamp(){
         FieldValue timestampValue = FieldValue.of(FieldValue.Attribute.PRIMITIVE, "12345");
         org.apache.arrow.vector.types.pojo.Field timestampField =
                 org.apache.arrow.vector.types.pojo.Field.nullable(FIELD_NAME, new ArrowType.Timestamp(org.apache.arrow.vector.types.TimeUnit.MILLISECOND, null));
-
-        Object result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, timestampValue, timestampField, true);
-        assertNotNull(result);
-        assertInstanceOf(Long.class, result);
-        assertEquals(12345000L, result);
+        try {
+            Object result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, timestampValue, timestampField, true);
+            assertNotNull(result);
+            assertInstanceOf(Long.class, result);
+            assertEquals(12345000L, result);
+        } catch (ParseException e) {
+            fail("Unexpected ParseException Occurred: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testGetObjectFromFieldValueWithDecimal() throws ParseException {
+    public void testGetObjectFromFieldValueWithDecimal() {
         FieldValue decimalValue = FieldValue.of(FieldValue.Attribute.PRIMITIVE, "123.45");
         org.apache.arrow.vector.types.pojo.Field decimalField =
                 org.apache.arrow.vector.types.pojo.Field.nullable(FIELD_NAME, new ArrowType.Decimal(38, 9, 128));
-
-        Object result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, decimalValue, decimalField, false);
-        assertNotNull(result);
-        assertInstanceOf(BigDecimal.class, result);
-        assertEquals(new BigDecimal("123.45"), result);
+        try {
+            Object result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, decimalValue, decimalField, false);
+            assertNotNull(result);
+            assertInstanceOf(BigDecimal.class, result);
+            assertEquals(new BigDecimal("123.45"), result);
+        } catch (ParseException e) {
+            fail("Unexpected ParseException Occurred: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testGetObjectFromFieldValueVarcharWithTimestamp() throws ParseException {
+    public void testGetObjectFromFieldValueVarcharWithTimestamp() {
         String timestampMillis = "1748604000000"; // Represents 2025-05-30T12:00:00Z
         FieldValue varcharTimestampValue = FieldValue.of(FieldValue.Attribute.PRIMITIVE, timestampMillis);
         org.apache.arrow.vector.types.pojo.Field varcharTimestampField =
                 org.apache.arrow.vector.types.pojo.Field.nullable(FIELD_NAME, new ArrowType.Utf8());
+        try {
+            Object result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, varcharTimestampValue, varcharTimestampField, false);
+            assertNotNull(result);
+            assertInstanceOf(String.class, result);
+            assertEquals(timestampMillis, result);
 
-        Object result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, varcharTimestampValue, varcharTimestampField, false);
-        assertNotNull(result);
-        assertInstanceOf(String.class, result);
-        assertEquals(timestampMillis, result);
-
-        result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, varcharTimestampValue, varcharTimestampField, true);
-        assertNotNull(result);
-        assertInstanceOf(Instant.class, result);
+            result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, varcharTimestampValue, varcharTimestampField, true);
+            assertNotNull(result);
+            assertInstanceOf(Instant.class, result);
+        } catch (ParseException e) {
+            fail("Unexpected ParseException Occurred: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testGetObjectFromFieldValueWithNull() throws ParseException {
+    public void testGetObjectFromFieldValueWithNull() {
         FieldValue nullValue = FieldValue.of(FieldValue.Attribute.PRIMITIVE, null);
         org.apache.arrow.vector.types.pojo.Field field =
                 org.apache.arrow.vector.types.pojo.Field.nullable(FIELD_NAME, new ArrowType.Utf8());
-
-        Object result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, nullValue, field, false);
-        assertNull(result);
+        try {
+            Object result = BigQueryUtils.getObjectFromFieldValue(FIELD_NAME, nullValue, field, false);
+            assertNull(result);
+        } catch (ParseException e) {
+            fail("Unexpected ParseException Occurred: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testGetComplexObjectFromFieldValueWithStruct() throws ParseException {
+    public void testGetComplexObjectFromFieldValueWithStruct() {
         List<com.google.cloud.bigquery.Field> testSchemaFields = List.of(
                 Field.of(FIELD_NAME, LegacySQLTypeName.STRING));
         List<FieldValue> bigQueryRowValue = List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, "test"));
@@ -389,16 +408,19 @@ public class BigQueryUtilsTest
         List<org.apache.arrow.vector.types.pojo.Field> children = new ArrayList<>();
         children.add(childField);
         structField = new org.apache.arrow.vector.types.pojo.Field(FIELD_NAME, structField.getFieldType(), children);
-
-        Object result = BigQueryUtils.getComplexObjectFromFieldValue(structField, structValue, false);
-        assertInstanceOf(Map.class, result);
-        Map<Object, Object> structResult = (Map<Object, Object>) result;
-        assertEquals(1, structResult.size());
-        assertEquals(FIELD_NAME, structResult.get("element"));
+        try {
+            Object result = BigQueryUtils.getComplexObjectFromFieldValue(structField, structValue, false);
+            assertInstanceOf(Map.class, result);
+            Map<Object, Object> structResult = (Map<Object, Object>) result;
+            assertEquals(1, structResult.size());
+            assertEquals(FIELD_NAME, structResult.get("element"));
+        } catch (ParseException e) {
+            fail("Unexpected ParseException Occurred: " + e.getMessage());
+        }
     }
 
     @Test
-    public void testGetComplexObjectFromFieldValueWithList() throws ParseException {
+    public void testGetComplexObjectFromFieldValueWithList() {
         String expectedValue1 = "test1";
         String expectedValue2 = "test2";
         List<FieldValue> repeatedValues = new ArrayList<>();
@@ -413,13 +435,16 @@ public class BigQueryUtilsTest
         List<org.apache.arrow.vector.types.pojo.Field> children = new ArrayList<>();
         children.add(childField);
         listField = new org.apache.arrow.vector.types.pojo.Field(FIELD_NAME, listField.getFieldType(), children);
-
-        Object result = BigQueryUtils.getComplexObjectFromFieldValue(listField, listValue, false);
-        assertInstanceOf(List.class, result);
-        List<?> listResult = (List<?>) result;
-        assertEquals(2, listResult.size());
-        assertEquals(expectedValue1, listResult.get(0));
-        assertEquals(expectedValue2, listResult.get(1));
+        try {
+            Object result = BigQueryUtils.getComplexObjectFromFieldValue(listField, listValue, false);
+            assertInstanceOf(List.class, result);
+            List<?> listResult = (List<?>) result;
+            assertEquals(2, listResult.size());
+            assertEquals(expectedValue1, listResult.get(0));
+            assertEquals(expectedValue2, listResult.get(1));
+        } catch (ParseException e) {
+            fail("Unexpected ParseException Occurred: " + e.getMessage());
+        }
     }
 
     @Test(expected = ParseException.class)
