@@ -22,9 +22,7 @@ package com.amazonaws.athena.connectors.saphana;
 import com.amazonaws.athena.connector.lambda.domain.Split;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,6 +47,19 @@ public class SaphanaQueryStringBuilderTest
         Assert.assertEquals(expectedString1, fromClauseWithSplit1);
         Assert.assertEquals(expectedString2, fromClauseWithSplit2);
     }
+
+    @Test
+    public void testQueryBuilder_WithAllPartitions()
+    {
+        Split split = Mockito.mock(Split.class);
+        String expectedString = " FROM \"default\".\"schema\".\"table\" ";
+        Mockito.when(split.getProperties()).thenReturn(Collections.singletonMap(BLOCK_PARTITION_COLUMN_NAME, "0"));
+        Mockito.when(split.getProperty(Mockito.eq(BLOCK_PARTITION_COLUMN_NAME))).thenReturn("0");
+        SaphanaQueryStringBuilder builder = new SaphanaQueryStringBuilder(SAPHANA_QUOTE_CHARACTER, new SaphanaFederationExpressionParser(SAPHANA_QUOTE_CHARACTER));
+        String fromClauseWithSplit = builder.getFromClauseWithSplit("default", "schema", "table", split);
+        Assert.assertEquals(expectedString, fromClauseWithSplit);
+    }
+
     @Test
     public void testGetPartitionWhereClauses()
     {
