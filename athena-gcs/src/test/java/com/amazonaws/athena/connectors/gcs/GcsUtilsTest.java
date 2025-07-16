@@ -19,9 +19,8 @@
  */
 package com.amazonaws.athena.connectors.gcs;
 
-import com.amazonaws.athena.connector.lambda.data.SchemaBuilder;
+import com.amazonaws.athena.connector.lambda.security.CachableSecretsManager;
 import org.apache.arrow.memory.RootAllocator;
-import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.TimeMicroVector;
 import org.apache.arrow.vector.TimeNanoVector;
 import org.apache.arrow.vector.TimeStampMilliVector;
@@ -34,20 +33,41 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
-import org.apache.arrow.vector.types.pojo.Schema;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.security.KeyStore;
+import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
+import static com.amazonaws.athena.connectors.gcs.GcsConstants.GCS_SECRET_KEY_ENV_VAR;
+import static com.amazonaws.athena.connectors.gcs.GcsConstants.GOOGLE_SERVICE_ACCOUNT_JSON_TEMP_FILE_LOCATION_VALUE;
 import static com.amazonaws.athena.connectors.gcs.GcsUtil.coerce;
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.contains;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class GcsUtilsTest
 {
@@ -79,6 +99,124 @@ public class GcsUtilsTest
     {
         String uri = GcsUtil.createUri("bucket/test");
         assertEquals("gs://bucket/test", uri);
+    }
+
+    @Test
+    public void testInstallCaCertificate() {
+        try {
+            final String algorithm = "PKIX";
+            X509Certificate mockCertificate = mock(X509Certificate.class);
+            X509TrustManager mockTrustManager = mock(X509TrustManager.class);
+            TrustManagerFactory mockTrustManagerFactory = mock(TrustManagerFactory.class);
+
+            // Certificate data setup
+            byte[] certificateBytes = "test-certificate-data".getBytes();
+            when(mockCertificate.getEncoded()).thenReturn(certificateBytes);
+            when(mockTrustManager.getAcceptedIssuers()).thenReturn(new X509Certificate[]{mockCertificate});
+            when(mockTrustManagerFactory.getTrustManagers()).thenReturn(new TrustManager[]{mockTrustManager});
+
+            try (MockedStatic<TrustManagerFactory> trustManagerFactoryStatic = mockStatic(TrustManagerFactory.class);
+                 MockedConstruction<FileWriter> fileWriterConstruction = mockConstruction(FileWriter.class,
+                         (mock, context) -> {
+                             // Verify constructor was called with correct file path
+                             assertEquals(1, context.arguments().size());
+                             assertEquals("/tmp/cacert.pem", context.arguments().get(0));
+
+                             doNothing().when(mock).write(anyString());
+                             doNothing().when(mock).close();
+                         })) {
+
+                trustManagerFactoryStatic.when(TrustManagerFactory::getDefaultAlgorithm)
+                        .thenReturn(algorithm);
+                trustManagerFactoryStatic.when(() -> TrustManagerFactory.getInstance(algorithm))
+                        .thenReturn(mockTrustManagerFactory);
+
+                GcsUtil.installCaCertificate();
+
+                // Verify TrustManagerFactory interactions
+                trustManagerFactoryStatic.verify(TrustManagerFactory::getDefaultAlgorithm);
+                trustManagerFactoryStatic.verify(() -> TrustManagerFactory.getInstance(algorithm));
+                verify(mockTrustManagerFactory).init((KeyStore) isNull());
+                verify(mockTrustManager).getAcceptedIssuers();
+                verify(mockCertificate).getEncoded();
+
+                // Verify FileWriter construction
+                assertEquals(1, fileWriterConstruction.constructed().size());
+                FileWriter constructedFileWriter = fileWriterConstruction.constructed().get(0);
+
+                // Verify specific content is written (formatted certificate + line separator)
+                verify(constructedFileWriter).write(contains("-----BEGIN CERTIFICATE-----"));
+                verify(constructedFileWriter).write(contains("-----END CERTIFICATE-----"));
+                verify(constructedFileWriter).write(System.lineSeparator());
+                verify(constructedFileWriter).close();
+            }
+        } catch (Exception e) {
+            fail("Unexpected exception in test: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testInstallGoogleCredentialsJsonFile() {
+        // Test when file doesn't exist - should create file and write content
+        testInstallGoogleCredentialsJsonFileScenario(false, true, 1);
+        
+        // Test when file already exists - should return early without writing
+        testInstallGoogleCredentialsJsonFileScenario(true, false, 0);
+    }
+    
+    private void testInstallGoogleCredentialsJsonFileScenario(boolean fileExists, boolean mkdirsResult, int expectedFileOutputStreamConstructions) {
+        final String secretKey = "test-secret-key";
+        final String temp = "/tmp";
+        Map<String, String> configOptions = new HashMap<>();
+        configOptions.put(GCS_SECRET_KEY_ENV_VAR, secretKey);
+        
+        String expectedCredentialsContent = "{\"type\": \"service_account\", \"project_id\": \"test-project\"}";
+        
+        SecretsManagerClient mockSecretsManagerClient = mock(SecretsManagerClient.class);
+        
+        try (MockedStatic<SecretsManagerClient> secretsManagerClientStatic = mockStatic(SecretsManagerClient.class);
+             MockedConstruction<CachableSecretsManager> secretsManagerConstruction = mockConstruction(CachableSecretsManager.class,
+                     (mock, context) -> {
+                         when(mock.getSecret(secretKey)).thenReturn(expectedCredentialsContent);
+                     });
+             MockedConstruction<File> ignoredMockConstruction = mockConstruction(File.class,
+                     (mock, context) -> {
+                         if (context.arguments().size() == 1 && GOOGLE_SERVICE_ACCOUNT_JSON_TEMP_FILE_LOCATION_VALUE.equals(context.arguments().get(0))) {
+                             when(mock.getParent()).thenReturn(temp);
+                             when(mock.exists()).thenReturn(fileExists);
+                         } else if (context.arguments().size() == 1 && temp.equals(context.arguments().get(0))) {
+                             when(mock.mkdirs()).thenReturn(mkdirsResult);
+                         }
+                     });
+             MockedConstruction<FileOutputStream> fileOutputStreamConstruction = mockConstruction(FileOutputStream.class)) {
+            
+            secretsManagerClientStatic.when(SecretsManagerClient::create)
+                    .thenReturn(mockSecretsManagerClient);
+
+            GcsUtil.installGoogleCredentialsJsonFile(configOptions);
+
+            // Verify SecretsManagerClient creation
+            secretsManagerClientStatic.verify(SecretsManagerClient::create);
+            
+            // Verify CachableSecretsManager construction and usage
+            assertEquals(1, secretsManagerConstruction.constructed().size());
+            CachableSecretsManager constructedSecretsManager = secretsManagerConstruction.constructed().get(0);
+
+            verify(constructedSecretsManager).getSecret(secretKey);
+
+            // Verify FileOutputStream construction based on scenario
+            assertEquals(expectedFileOutputStreamConstructions, fileOutputStreamConstruction.constructed().size());
+            
+            if (expectedFileOutputStreamConstructions > 0) {
+                FileOutputStream constructedOutputStream = fileOutputStreamConstruction.constructed().get(0);
+                verify(constructedOutputStream).write(expectedCredentialsContent.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                verify(constructedOutputStream).flush();
+                verify(constructedOutputStream).close();
+            }
+            
+        } catch (Exception e) {
+            fail("Unexpected exception in test: " + e.getMessage());
+        }
     }
 
     @Test

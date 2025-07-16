@@ -39,6 +39,7 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -68,6 +69,12 @@ import static org.mockito.Mockito.when;
 public class GcsRecordHandlerTest extends GenericGcsTest
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(GcsRecordHandlerTest.class);
+
+    private static final String QUERY_ID = "queryId";
+    private static final String PARQUET = "parquet";
+    private static final String DATASET_NAME = "dataset1";
+    private static final String TABLE_NAME = "table1";
+    private static final String DATA_PARQUET = "[\"data.parquet\"]";
 
     @Mock
     private SecretsManagerClient secretsManager;
@@ -152,20 +159,11 @@ public class GcsRecordHandlerTest extends GenericGcsTest
     {
         // Mocking split
         Split split = mock(Split.class);
-        when(split.getProperty(STORAGE_SPLIT_JSON)).thenReturn("[\"data.parquet\"]");
-        when(split.getProperty(FILE_FORMAT)).thenReturn("parquet");
+        when(split.getProperty(STORAGE_SPLIT_JSON)).thenReturn(DATA_PARQUET);
+        when(split.getProperty(FILE_FORMAT)).thenReturn(PARQUET);
 
         // Test readWithConstraint
-        try (ReadRecordsRequest request = new ReadRecordsRequest(
-                federatedIdentity,
-                GcsTestUtils.PROJECT_1_NAME,
-                "queryId",
-                new TableName("dataset1", "table1"), // dummy table
-                GcsTestUtils.getDatatypeTestSchema(),
-                split,
-                new Constraints(Collections.emptyMap(), Collections.emptyList(), Collections.emptyList(), DEFAULT_NO_LIMIT, Collections.emptyMap()),
-                0, //This is ignored when directly calling readWithConstraints.
-                0)) {  //This is ignored when directly calling readWithConstraints.
+        try (ReadRecordsRequest request = readRecordRequest(split)) {
 
             QueryStatusChecker queryStatusChecker = mock(QueryStatusChecker.class);
             // Execute the test
@@ -174,4 +172,54 @@ public class GcsRecordHandlerTest extends GenericGcsTest
         }
     }
 
+    @Test
+    public void testReadWithConstraintWithPartitionColumns()
+    {
+        try {
+            final String id = "id";
+            final String name = "name";
+            final String idValue = "12345";
+            final String nameValue = "test_partition";
+
+            // Mocking split with partition column properties
+            Split split = mock(Split.class);
+            when(split.getProperty(STORAGE_SPLIT_JSON)).thenReturn(DATA_PARQUET);
+            when(split.getProperty(FILE_FORMAT)).thenReturn(PARQUET);
+
+            // Add partition column properties - these should match field names in the schema
+            when(split.getProperty(id)).thenReturn(idValue);
+            when(split.getProperty(name)).thenReturn(nameValue);
+
+            // Mock getProperties to return a map containing the partition properties
+            java.util.Map<String, String> splitProperties = new java.util.HashMap<>();
+            splitProperties.put(STORAGE_SPLIT_JSON, DATA_PARQUET);
+            splitProperties.put(FILE_FORMAT, PARQUET);
+            splitProperties.put(id, idValue);
+            splitProperties.put(name, nameValue);
+            when(split.getProperties()).thenReturn(splitProperties);
+
+            // Test readWithConstraint with partition columns
+            try (ReadRecordsRequest request = readRecordRequest(split)) {
+                QueryStatusChecker queryStatusChecker = mock(QueryStatusChecker.class);
+
+                gcsRecordHandler.readWithConstraint(spillWriter, request, queryStatusChecker);
+                assertEquals(2, spillWriter.getBlock().getRowCount(), "Total records should be 2");
+            }
+        } catch (Exception e) {
+            Assertions.fail("Unexpected exception in test: " + e.getMessage());
+        }
+    }
+
+    private ReadRecordsRequest readRecordRequest(Split split) {
+        return new ReadRecordsRequest(
+                federatedIdentity,
+                GcsTestUtils.PROJECT_1_NAME,
+                QUERY_ID,
+                new TableName(DATASET_NAME, TABLE_NAME), // dummy table
+                GcsTestUtils.getDatatypeTestSchema(),
+                split,
+                new Constraints(Collections.emptyMap(), Collections.emptyList(), Collections.emptyList(), DEFAULT_NO_LIMIT, Collections.emptyMap()),
+                0, //This is ignored when directly calling readWithConstraints.
+                0);//This is ignored when directly calling readWithConstraints.
+    }
 }
