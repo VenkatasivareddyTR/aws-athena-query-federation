@@ -41,6 +41,7 @@ import org.apache.arrow.vector.types.pojo.Schema;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.mockito.Mock;
@@ -86,7 +87,10 @@ public class GcsRecordHandlerTest extends GenericGcsTest
     GoogleCredentials credentials;
 
     private S3BlockSpiller spillWriter;
-
+    private BlockAllocator allocator;
+    private SpillConfig spillConfig;
+    private Schema schemaForRead;
+    private S3Client amazonS3;
 
     private final EncryptionKeyFactory keyFactory = new LocalKeyFactory();
     private final EncryptionKey encryptionKey = keyFactory.create();
@@ -110,14 +114,14 @@ public class GcsRecordHandlerTest extends GenericGcsTest
         System.setProperty("aws.region", "us-east-1");
         LOGGER.info("Starting init.");
         federatedIdentity = Mockito.mock(FederatedIdentity.class);
-        BlockAllocator allocator = new BlockAllocatorImpl();
-        S3Client amazonS3 = mock(S3Client.class);
+        allocator = new BlockAllocatorImpl();
+        amazonS3 = mock(S3Client.class);
 
         // Create Spill config
         // This will be enough for a single block
         // This will force the writer to spill.
         // Async Writing.
-        SpillConfig spillConfig = SpillConfig.newBuilder()
+        spillConfig = SpillConfig.newBuilder()
                 .withEncryptionKey(encryptionKey)
                 //This will be enough for a single block
                 .withMaxBlockBytes(100000)
@@ -135,8 +139,7 @@ public class GcsRecordHandlerTest extends GenericGcsTest
         // To mock AmazonAthena via AmazonAthenaClientBuilder
         mockedAthenaClientBuilder.when(AthenaClient::create).thenReturn(athena);
         mockedGoogleCredentials.when(() -> GoogleCredentials.fromStream(any())).thenReturn(credentials);
-        Schema schemaForRead = new Schema(GcsTestUtils.getTestSchemaFieldsArrow());
-        spillWriter = new S3BlockSpiller(amazonS3, spillConfig, allocator, schemaForRead, ConstraintEvaluator.emptyEvaluator(), com.google.common.collect.ImmutableMap.of());
+        schemaForRead = new Schema(GcsTestUtils.getTestSchemaFieldsArrow());
 
         // Mocking GcsUtil
         final File parquetFile = new File(GcsRecordHandlerTest.class.getProtectionDomain().getCodeSource().getLocation().getPath());
@@ -150,6 +153,15 @@ public class GcsRecordHandlerTest extends GenericGcsTest
     @AfterAll
     public void closeMockedObjects() {
         super.closeMockedObjects();
+        allocator.close();
+        bufferAllocator.close();
+    }
+
+    @BeforeEach
+    public void resetSpillWriter() {
+        // Reset the spillWriter before each test to ensure isolation
+        spillWriter = new S3BlockSpiller(amazonS3, spillConfig, allocator, schemaForRead,
+                ConstraintEvaluator.emptyEvaluator(), com.google.common.collect.ImmutableMap.of());
     }
 
     @SuppressWarnings("unchecked")
