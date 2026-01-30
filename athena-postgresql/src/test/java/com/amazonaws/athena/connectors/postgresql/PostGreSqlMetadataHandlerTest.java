@@ -57,7 +57,6 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
-import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -517,7 +516,7 @@ public class PostGreSqlMetadataHandlerTest
         TableName tableName = getTableName();
         mockPrimaryKeys(null, false);
 
-        List<String> result = invokeGetSplitClauses(tableName);
+        List<String> result = postGreSqlMetadataHandler.getSplitClauses(tableName);
 
         Assert.assertNotNull(result);
         Assert.assertTrue("Expected empty list when no primary key exists", result.isEmpty());
@@ -534,7 +533,7 @@ public class PostGreSqlMetadataHandlerTest
         mockPrimaryKeys("id", true);
         mockDataTypeCheck("uuid");
 
-        List<String> result = invokeGetSplitClauses(tableName);
+        List<String> result = postGreSqlMetadataHandler.getSplitClauses(tableName);
 
         Assert.assertNotNull(result);
         Assert.assertTrue("Expected empty list when primary key is UUID", result.isEmpty());
@@ -552,7 +551,7 @@ public class PostGreSqlMetadataHandlerTest
         mockDataTypeCheck("integer");
         mockMinMaxQuery("order_id", 100);
 
-        List<String> result = invokeGetSplitClauses(tableName);
+        List<String> result = postGreSqlMetadataHandler.getSplitClauses(tableName);
 
         Assert.assertNotNull(result);
         Assert.assertFalse("Expected non-empty list when splits can be generated", result.isEmpty());
@@ -569,7 +568,7 @@ public class PostGreSqlMetadataHandlerTest
         when(connection.getMetaData().getPrimaryKeys(null, "testSchema", "errorTable"))
                 .thenThrow(new SQLException("Database connection error"));
 
-        List<String> result = invokeGetSplitClauses(tableName);
+        List<String> result = postGreSqlMetadataHandler.getSplitClauses(tableName);
 
         Assert.assertNotNull(result);
         Assert.assertTrue("Expected empty list when exception occurs", result.isEmpty());
@@ -587,7 +586,7 @@ public class PostGreSqlMetadataHandlerTest
         mockDataTypeCheck(null);
         mockMinMaxQuery("product_id", 50);
 
-        List<String> result = invokeGetSplitClauses(tableName);
+        List<String> result = postGreSqlMetadataHandler.getSplitClauses(tableName);
 
         Assert.assertNotNull(result);
         Assert.assertFalse("Expected splits to be generated when UUID check returns false", result.isEmpty());
@@ -608,26 +607,10 @@ public class PostGreSqlMetadataHandlerTest
 
         mockMinMaxQuery("id", 100);
 
-        List<String> result = invokeGetSplitClauses(tableName);
+        List<String> result = postGreSqlMetadataHandler.getSplitClauses(tableName);
 
         Assert.assertNotNull(result);
         Assert.assertFalse("Expected splits to be generated when UUID check throws exception", result.isEmpty());
-    }
-    
-    /**
-     * Helper method to invoke private getSplitClauses method.
-     */
-    private List<String> invokeGetSplitClauses(TableName tableName) throws Exception
-    {
-        Method method = PostGreSqlMetadataHandler.class.getDeclaredMethod("getSplitClauses", TableName.class);
-        method.setAccessible(true);
-        Object result = method.invoke(postGreSqlMetadataHandler, tableName);
-        if (result instanceof List) {
-            return ((List<?>) result).stream()
-                    .map(String.class::cast)
-                    .collect(Collectors.toList());
-        }
-        return Collections.emptyList();
     }
 
      /**

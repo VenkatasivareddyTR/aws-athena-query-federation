@@ -108,9 +108,9 @@ public class PostGreSqlMetadataHandler
     protected static final String NON_DEFAULT_COLLATE = "non_default_collate";
     private static final String GET_DATA_TYPE_QUERY = "SELECT data_type FROM information_schema.columns " +
             "WHERE table_schema = ? AND table_name = ? AND column_name = ?";
-    private final SplitterFactory splitterFactory = new SplitterFactory();
-    private static final String SQL_SPLITS_STRING = "select min(%s), max(%s) from %s.%s;";
-    private static final int DEFAULT_NUM_SPLITS = 20;
+    protected final SplitterFactory splitterFactory = new SplitterFactory();
+    protected static final String SQL_SPLITS_STRING = "select min(%s), max(%s) from %s.%s;";
+    protected static final int DEFAULT_NUM_SPLITS = 20;
 
     /**
      * Instantiates handler to be used by Lambda function directly.
@@ -438,9 +438,12 @@ public class PostGreSqlMetadataHandler
      * @return List of split clauses, empty if splits cannot be generated or if disabled
      */
 
-    private List<String> getSplitClauses(final TableName tableName)
+    protected List<String> getSplitClauses(final TableName tableName)
     {
         List<String> splitClauses = new ArrayList<>();
+        // getSplitClauses is only used by PostgreSQL and Redshift connectors as of now,
+        // and it does not require AwsRequestOverrideConfiguration for FAS_TOKEN query federation.
+        // So keep it as is.
         // Check for UUID primary keys before attempting MIN/MAX query
         try (Connection jdbcConnection = getJdbcConnectionFactory().getConnection(getCredentialProvider());
              ResultSet resultSet = jdbcConnection.getMetaData().getPrimaryKeys(null,
