@@ -39,27 +39,27 @@ public class MySqlEnvironmentPropertiesTest {
     private static final String expectedPrefix = "mysql://jdbc:mysql://";
 
     @Test
-    public void getConnectionStringPrefix_withValidConnectionProperties_returnsCorrectPrefix() {
+    public void getConnectionStringPrefix_withValidConnectionProperties_returnsMySqlJdbcUrlPrefix() {
         Map<String, String> connectionProperties = getConnectionProperties();
         String actualPrefix = environmentProperties.getConnectionStringPrefix(connectionProperties);
         assertEquals(expectedPrefix, actualPrefix);
     }
 
     @Test
-    public void getConnectionStringPrefix_withEmptyConnectionProperties_returnsCorrectPrefix() {
+    public void getConnectionStringPrefix_withEmptyConnectionProperties_returnsMySqlJdbcUrlPrefix() {
         Map<String, String> connectionProperties = new HashMap<>();
         String actualPrefix = environmentProperties.getConnectionStringPrefix(connectionProperties);
         assertEquals(expectedPrefix, actualPrefix);
     }
 
     @Test
-    public void getConnectionStringPrefix_withNullConnectionProperties_returnsCorrectPrefix() {
+    public void getConnectionStringPrefix_withNullConnectionProperties_returnsMySqlJdbcUrlPrefix() {
         String actualPrefix = environmentProperties.getConnectionStringPrefix(null);
         assertEquals(expectedPrefix, actualPrefix);
     }
 
     @Test
-    public void connectionPropertiesToEnvironment_withSecretName_returnsCompleteConnectionString() {
+    public void connectionPropertiesToEnvironment_withSecretName_returnsConnectionStringWithSecretPlaceholder() {
         Map<String, String> connectionProperties = getConnectionProperties();
         connectionProperties.put(SECRET_NAME, "test_secret_name");
         Map<String, String> environment = environmentProperties.connectionPropertiesToEnvironment(connectionProperties);
@@ -70,7 +70,7 @@ public class MySqlEnvironmentPropertiesTest {
     }
 
     @Test
-    public void connectionPropertiesToEnvironment_withUserAndPassword_returnsCompleteConnectionString() {
+    public void connectionPropertiesToEnvironment_withUserAndPassword_returnsConnectionStringWithJdbcParams() {
         Map<String, String> connectionProperties = getConnectionProperties();
         connectionProperties.put(JDBC_PARAMS, "user=sample&password=sample1");
         Map<String, String> environment = environmentProperties.connectionPropertiesToEnvironment(connectionProperties);
@@ -78,6 +78,11 @@ public class MySqlEnvironmentPropertiesTest {
 
         assertTrue("Environment should contain the DEFAULT key", environment.containsKey(DEFAULT));
         assertEquals(expectedConnectionString, environment.get(DEFAULT));
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void connectionPropertiesToEnvironment_withNullConnectionProperties_throwsNullPointerException() {
+        environmentProperties.connectionPropertiesToEnvironment(null);
     }
 
     private Map<String, String> getConnectionProperties() {

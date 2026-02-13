@@ -108,7 +108,7 @@ public class MySqlMetadataHandlerTest
     }
 
     @Test
-    public void getPartitionSchema()
+    public void getPartitionSchema_withCatalogName_returnsSchemaWithPartitionColumn()
     {
         Assert.assertEquals(SchemaBuilder.newBuilder()
                         .addField(MySqlMetadataHandler.BLOCK_PARTITION_COLUMN_NAME, org.apache.arrow.vector.types.Types.MinorType.VARCHAR.getType()).build(),
@@ -116,7 +116,7 @@ public class MySqlMetadataHandlerTest
     }
 
     @Test
-    public void doGetTableLayout()
+    public void doGetTableLayout_withPartitions_returnsLayoutWithPartitionList()
             throws Exception
     {
         BlockAllocator blockAllocator = new BlockAllocatorImpl();
@@ -158,7 +158,7 @@ public class MySqlMetadataHandlerTest
     }
 
     @Test
-    public void doGetTableLayoutWithNoPartitions()
+    public void doGetTableLayout_withNoPartitions_returnsLayoutWithDefaultPartition()
             throws Exception
     {
         BlockAllocator blockAllocator = new BlockAllocatorImpl();
@@ -200,7 +200,7 @@ public class MySqlMetadataHandlerTest
     }
 
     @Test
-    public void doListPaginatedTables()
+    public void doListTables_withPagination_returnsListOfTablesWithNextToken()
         throws Exception
     {
         BlockAllocator blockAllocator = new BlockAllocatorImpl();
@@ -234,7 +234,7 @@ public class MySqlMetadataHandlerTest
     }
 
     @Test(expected = RuntimeException.class)
-    public void doGetTableLayoutWithSQLException()
+    public void doGetTableLayout_whenSqlException_throwsRuntimeException()
             throws Exception
     {
         Constraints constraints = Mockito.mock(Constraints.class);
@@ -253,7 +253,7 @@ public class MySqlMetadataHandlerTest
     }
 
     @Test
-    public void doGetSplits()
+    public void doGetSplits_withTableLayout_returnsListOfSplitsPerPartition()
             throws Exception
     {
         BlockAllocator blockAllocator = new BlockAllocatorImpl();
@@ -290,7 +290,7 @@ public class MySqlMetadataHandlerTest
     }
 
     @Test
-    public void doGetSplitsContinuation()
+    public void doGetSplits_withContinuationToken_returnsListOfRemainingSplits()
             throws Exception
     {
         BlockAllocator blockAllocator = new BlockAllocatorImpl();
@@ -326,7 +326,7 @@ public class MySqlMetadataHandlerTest
     }
 
     @org.testng.annotations.Test(expectedExceptions = {RuntimeException.class}, expectedExceptionsMessageRegExp = "More than one table that matches 'testtable' was returned from Database testSchema")
-    public void doGetTableCaseInsensitiveDuplicateTableNames()
+    public void doGetTable_withCaseInsensitiveDuplicateTableNames_throwsRuntimeException()
             throws Exception
     {
         TableName inputTableName = new TableName("testSchema", "testtable");
@@ -341,7 +341,7 @@ public class MySqlMetadataHandlerTest
     }
 
     @org.testng.annotations.Test(expectedExceptions = {RuntimeException.class}, expectedExceptionsMessageRegExp = "During Case Insensitive look up could not find Table testtable in Database testSchema")
-    public void doGetTableCaseInsensitiveNoTablesFound()
+    public void doGetTable_withCaseInsensitiveNoTablesFound_throwsRuntimeException()
             throws Exception
     {
         TableName inputTableName = new TableName("testSchema", "testtable");
@@ -355,7 +355,7 @@ public class MySqlMetadataHandlerTest
     }
 
     @Test
-    public void doGetDataSourceCapabilities_DefaultRequest_ReturnsExpectedCapabilities()
+    public void doGetDataSourceCapabilities_withDefaultRequest_returnsDataSourceCapabilities()
     {
         BlockAllocator allocator = new BlockAllocatorImpl();
         GetDataSourceCapabilitiesRequest request =
@@ -388,7 +388,7 @@ public class MySqlMetadataHandlerTest
     }
 
     @Test
-    public void doGetSplits_queryPassthrough_returnsSingleSplit()
+    public void doGetSplits_withQueryPassthrough_returnsSingleSplitWithPassthroughArguments()
     {
         BlockAllocator blockAllocator = new BlockAllocatorImpl();
         TableName tableName = new TableName("testSchema", "testTable");

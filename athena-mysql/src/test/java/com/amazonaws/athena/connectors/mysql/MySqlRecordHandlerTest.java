@@ -88,7 +88,7 @@ public class MySqlRecordHandlerTest
     }
 
     @Test
-    public void buildSplitSql()
+    public void buildSplitSql_withConstraintsAndSplit_returnsPreparedStatementWithBoundParams()
             throws SQLException
     {
         TableName tableName = getTableName();
@@ -150,7 +150,7 @@ public class MySqlRecordHandlerTest
     }
 
     @Test
-    public void buildSplitSql_withDateConstraint_returnsCorrectSql()
+    public void buildSplitSql_withDateConstraint_generatesSqlWithDatePredicate()
             throws SQLException
     {
         TableName tableName = getTableName();
@@ -189,8 +189,30 @@ public class MySqlRecordHandlerTest
                 .setDate(1, Date.valueOf("2020-01-03"));
     }
 
+    @Test(expected = NullPointerException.class)
+    public void buildSplitSql_withNullConnection_throwsNullPointerException() throws SQLException {
+        TableName tableName = getTableName();
+        Schema schema = SchemaBuilder.newBuilder()
+                .addField(FieldBuilder.newBuilder("testCol1", Types.MinorType.INT.getType()).build())
+                .addField(FieldBuilder.newBuilder("partition_name", Types.MinorType.VARCHAR.getType()).build())
+                .build();
+        Split split = Mockito.mock(Split.class);
+        Mockito.when(split.getProperties()).thenReturn(Collections.singletonMap("partition_name", "p0"));
+        Mockito.when(split.getProperty(Mockito.eq("partition_name"))).thenReturn("p0");
+        this.mySqlRecordHandler.buildSplitSql(null, "testCatalogName", tableName, schema, getConstraints(getSingleValueSet(1), Collections.emptyMap()), split);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void buildSplitSql_withNullSchema_throwsNullPointerException() throws SQLException {
+        TableName tableName = getTableName();
+        Split split = Mockito.mock(Split.class);
+        Mockito.when(split.getProperties()).thenReturn(Collections.singletonMap("partition_name", "p0"));
+        Mockito.when(split.getProperty(Mockito.eq("partition_name"))).thenReturn("p0");
+        this.mySqlRecordHandler.buildSplitSql(this.connection, "testCatalogName", tableName, null, getConstraints(getSingleValueSet(1), Collections.emptyMap()), split);
+    }
+
     @Test
-    public void buildSplitSql_withLargeNumbers_returnsCorrectSql()
+    public void buildSplitSql_withLargeNumbers_generatesSqlWithDecimalAndBigIntBindings()
             throws SQLException
     {
         TableName tableName = getTableName();

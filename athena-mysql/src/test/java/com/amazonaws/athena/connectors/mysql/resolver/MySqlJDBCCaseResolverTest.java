@@ -89,25 +89,25 @@ public class MySqlJDBCCaseResolverTest extends TestBase {
     }
 
     @Test
-    public void constructor_withSourceType_setsCorrectProperties() {
+    public void constructor_withSourceType_createsResolverInstance() {
         assertNotNull("Resolver should not be null after construction", resolver);
         assertEquals(MySqlJDBCCaseResolver.class, resolver.getClass());
     }
 
     @Test
-    public void getCaseInsensitivelySchemaNameQueryTemplate_returnsCorrectTemplate() {
+    public void getCaseInsensitivelySchemaNameQueryTemplate_returnsSchemaNameQueryTemplate() {
         String actualTemplate = resolver.getCaseInsensitivelySchemaNameQueryTemplate();
         assertEquals(EXPECTED_SCHEMA_QUERY_TEMPLATE, actualTemplate);
     }
 
     @Test
-    public void getCaseInsensitivelySchemaNameColumnKey_returnsCorrectKey() {
+    public void getCaseInsensitivelySchemaNameColumnKey_returnsSchemaNameColumnKey() {
         String actualKey = resolver.getCaseInsensitivelySchemaNameColumnKey();
         assertEquals(EXPECTED_SCHEMA_COLUMN_KEY, actualKey);
     }
 
     @Test
-    public void getCaseInsensitivelyTableNameQueryTemplate_returnsCorrectTemplateList() {
+    public void getCaseInsensitivelyTableNameQueryTemplate_returnsTableNameQueryTemplateList() {
         List<String> expectedTemplates = List.of(EXPECTED_TABLE_QUERY_TEMPLATE);
         List<String> actualTemplates = resolver.getCaseInsensitivelyTableNameQueryTemplate();
 
@@ -119,13 +119,13 @@ public class MySqlJDBCCaseResolverTest extends TestBase {
     }
 
     @Test
-    public void getCaseInsensitivelyTableNameColumnKey_returnsCorrectKey() {
+    public void getCaseInsensitivelyTableNameColumnKey_returnsTableNameColumnKey() {
         String actualKey = resolver.getCaseInsensitivelyTableNameColumnKey();
         assertEquals(EXPECTED_TABLE_COLUMN_KEY, actualKey);
     }
 
     @Test
-    public void getAdjustedSchemaNameString_withCaseInsensitiveSearch_returnsCorrectSchemaName() throws SQLException {
+    public void getAdjustedSchemaNameString_withCaseInsensitiveSearch_returnsLowercaseSchemaName() throws SQLException {
         ResultSet mockResultSet = createMockSchemaResultSet();
         when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
         Map<String, String> configOptions = createConfigOptions(FederationSDKCasingMode.CASE_INSENSITIVE_SEARCH);
@@ -140,7 +140,7 @@ public class MySqlJDBCCaseResolverTest extends TestBase {
     }
 
     @Test
-    public void getAdjustedTableNameString_withCaseInsensitiveSearch_returnsCorrectTableName() throws SQLException {
+    public void getAdjustedTableNameString_withCaseInsensitiveSearch_returnsLowercaseTableName() throws SQLException {
         ResultSet mockResultSet = createMockTableResultSet();
         when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
         Map<String, String> configOptions = createConfigOptions(FederationSDKCasingMode.CASE_INSENSITIVE_SEARCH);
@@ -156,7 +156,7 @@ public class MySqlJDBCCaseResolverTest extends TestBase {
     }
 
     @Test
-    public void getAdjustedTableNameObject_withCaseInsensitiveSearch_returnsCorrectTableName() throws SQLException {
+    public void getAdjustedTableNameObject_withCaseInsensitiveSearch_returnsLowercaseTableNameObject() throws SQLException {
         TableName inputTableNameObj = new TableName(TEST_SCHEMA_INPUT, TEST_TABLE_INPUT);
         TableName expectedTableNameObj = new TableName(TEST_SCHEMA_EXPECTED, TEST_TABLE_EXPECTED);
 
@@ -292,7 +292,7 @@ public class MySqlJDBCCaseResolverTest extends TestBase {
     }
 
     @Test
-    public void constructor_withCustomSourceType_createsResolverSuccessfully() {
+    public void constructor_withCustomSourceType_createsResolverInstance() {
         MySqlJDBCCaseResolver customResolver = new MySqlJDBCCaseResolver(CUSTOM_SOURCE_TYPE);
 
         assertNotNull("Resolver should not be null when created with custom source type", customResolver);
@@ -300,7 +300,7 @@ public class MySqlJDBCCaseResolverTest extends TestBase {
     }
 
     @Test
-    public void constructor_withMysqlSourceType_createsResolverSuccessfully() {
+    public void constructor_withMysqlSourceType_createsResolverInstance() {
         MySqlJDBCCaseResolver mysqlResolver = new MySqlJDBCCaseResolver(MYSQL_SOURCE_TYPE);
 
         assertNotNull("Resolver should not be null when created with mysql source type", mysqlResolver);
@@ -308,7 +308,7 @@ public class MySqlJDBCCaseResolverTest extends TestBase {
     }
 
     @Test
-    public void constructor_withNullSourceType_createsResolverSuccessfully() {
+    public void constructor_withNullSourceType_createsResolverInstance() {
         MySqlJDBCCaseResolver resolverWithNullType = new MySqlJDBCCaseResolver(null);
 
         assertNotNull("Resolver should not be null when created with null source type", resolverWithNullType);

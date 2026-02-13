@@ -76,7 +76,7 @@ public class MySqlQueryStringBuilderTest
         .build();
 
     @Test
-    public void generateSqlIsNotNull() throws Exception
+    public void buildSql_withNotNullConstraint_generatesPreparedStatementWithIsNotNullPredicate() throws Exception
     {
         Map<String, ValueSet> constraintsMap = ImmutableMap.of(TEST_COL2, SortedRangeSet.of(false, Range.all(allocator, org.apache.arrow.vector.types.Types.MinorType.INT.getType())));
         Constraints constraints = new Constraints(constraintsMap, Collections.emptyList(), Collections.emptyList(), DEFAULT_NO_LIMIT, Collections.emptyMap(), null);
@@ -92,7 +92,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void generateSqlIsNotEqual() throws Exception
+    public void buildSql_withNotEqualConstraint_generatesPreparedStatementWithOrPredicate() throws Exception
     {
         Map<String, ValueSet> constraintsMap = ImmutableMap.of(TEST_COL2, SortedRangeSet.of(false, Range.lessThan(allocator, org.apache.arrow.vector.types.Types.MinorType.INT.getType(), 138), Range.greaterThan(allocator, org.apache.arrow.vector.types.Types.MinorType.INT.getType(), 138)));
         Constraints constraints = new Constraints(constraintsMap, Collections.emptyList(), Collections.emptyList(), DEFAULT_NO_LIMIT, Collections.emptyMap(), null);
@@ -108,7 +108,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void testDatePredicate() throws Exception
+    public void buildSql_withDateRangeConstraint_generatesPreparedStatementWithDatePredicate() throws Exception
     {
         Map<String, ValueSet> constraintsMap = ImmutableMap.of("dateCol",
                 SortedRangeSet.of(false,
@@ -137,7 +137,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withOrderByClause_returnsCorrectSql() throws Exception
+    public void buildSql_withOrderByClause_generatesSqlWithOrderByClause() throws Exception
     {
         List<OrderByField> orderByFields = new ArrayList<>();
         orderByFields.add(new OrderByField(TEST_COL1, OrderByField.Direction.ASC_NULLS_LAST));
@@ -149,7 +149,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withLimitClause_returnsCorrectSql() throws Exception
+    public void buildSql_withLimitClause_generatesSqlWithLimitClause() throws Exception
     {
         Constraints constraints = buildConstraints(Collections.emptyMap(), Collections.emptyList(), 100);
 
@@ -158,7 +158,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withOrderByAndLimitClause_returnsCorrectSql() throws Exception
+    public void buildSql_withOrderByAndLimitClause_generatesSqlWithOrderByAndLimit() throws Exception
     {
         List<OrderByField> orderByFields = new ArrayList<>();
         orderByFields.add(new OrderByField(TEST_COL1, OrderByField.Direction.ASC_NULLS_FIRST));
@@ -169,7 +169,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withComplexQuery_returnsCorrectSql() throws Exception
+    public void buildSql_withComplexQuery_generatesSqlWithPredicatesOrderByAndLimit() throws Exception
     {
         Map<String, ValueSet> constraintsMap = ImmutableMap.of(
                 TEST_COL2, SortedRangeSet.of(false, Range.greaterThan(allocator, Types.MinorType.INT.getType(), 50)),
@@ -188,7 +188,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withFloatComparison_returnsCorrectSql() throws Exception
+    public void buildSql_withFloatRangeConstraint_generatesSqlWithBoundedFloatPredicate() throws Exception
     {
         Map<String, ValueSet> constraintsMap = ImmutableMap.of(
                 TEST_COL4, SortedRangeSet.of(false,
@@ -204,7 +204,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withStringPatternMatching_returnsCorrectSql() throws Exception
+    public void buildSql_withStringRangeConstraint_generatesSqlWithBoundedStringPredicate() throws Exception
     {
         Map<String, ValueSet> constraintsMap = ImmutableMap.of(
                 TEST_COL1, SortedRangeSet.of(false,
@@ -220,7 +220,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withMultiplePredicates_returnsCorrectSql() throws Exception
+    public void buildSql_withMultiplePredicates_generatesSqlWithAllPredicates() throws Exception
     {
         Map<String, ValueSet> constraintsMap = ImmutableMap.of(
                 TEST_COL1, SortedRangeSet.of(false, Range.equal(allocator, Types.MinorType.VARCHAR.getType(), "test")),
@@ -240,7 +240,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withEmptyConstraints_returnsCorrectSql() throws Exception
+    public void buildSql_withEmptyConstraints_generatesBaseSelectSql() throws Exception
     {
         Constraints constraints = buildConstraints(Collections.emptyMap(), Collections.emptyList(), DEFAULT_NO_LIMIT);
 
@@ -249,7 +249,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withZeroLimit_returnsCorrectSql() throws Exception
+    public void buildSql_withZeroLimit_generatesBaseSelectSqlWithoutLimit() throws Exception
     {
         Constraints constraints = buildConstraints(Collections.emptyMap(), Collections.emptyList(), 0);
 
@@ -258,7 +258,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withBetweenPredicates_returnsCorrectSql() throws Exception
+    public void buildSql_withBetweenPredicates_generatesSqlWithBetweenClauses() throws Exception
     {
         Map<String, ValueSet> constraintsMap = ImmutableMap.of(
                 TEST_COL2, SortedRangeSet.of(false, Range.range(allocator, Types.MinorType.INT.getType(), 10, true, 20, true)),
@@ -276,7 +276,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withInPredicateMultipleValues_returnsCorrectSql() throws Exception
+    public void buildSql_withInPredicateMultipleValues_generatesSqlWithInClauses() throws Exception
     {
         Map<String, ValueSet> constraintsMap = ImmutableMap.of(
                 TEST_COL1, SortedRangeSet.of(false,
@@ -302,7 +302,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withComplexOrderByNullsAndLimit_returnsCorrectSql() throws Exception
+    public void buildSql_withComplexOrderByNullsAndLimit_generatesSqlWithNullsOrderingAndLimit() throws Exception
     {
         List<OrderByField> orderByFields = new ArrayList<>();
         orderByFields.add(new OrderByField(TEST_COL1, OrderByField.Direction.ASC_NULLS_FIRST));
@@ -320,7 +320,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withDateRangesMultipleConditions_returnsCorrectSql() throws Exception
+    public void buildSql_withDateRangesMultipleConditions_generatesSqlWithOrDateRanges() throws Exception
     {
         Map<String, ValueSet> constraintsMap = ImmutableMap.of(
             "dateCol", SortedRangeSet.of(false,
@@ -339,7 +339,7 @@ public class MySqlQueryStringBuilderTest
     }
 
     @Test
-    public void buildSql_withMixedComparisonOperators_returnsCorrectSql() throws Exception
+    public void buildSql_withMixedComparisonOperators_generatesSqlWithOrPredicates() throws Exception
     {
         Map<String, ValueSet> constraintsMap = ImmutableMap.of(
                 TEST_COL2, SortedRangeSet.of(false,
