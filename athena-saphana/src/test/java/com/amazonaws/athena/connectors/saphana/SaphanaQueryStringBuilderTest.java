@@ -34,7 +34,7 @@ import static com.amazonaws.athena.connectors.saphana.SaphanaConstants.SAPHANA_Q
 public class SaphanaQueryStringBuilderTest
 {
     @Test
-    public void testQueryBuilder()
+    public void getFromClauseWithSplit_withPartition_returnsFromClauseWithPartition()
     {
         Split split = Mockito.mock(Split.class);
         String expectedString1 = " FROM \"default\".\"table\" PARTITION (p0) ";
@@ -49,7 +49,7 @@ public class SaphanaQueryStringBuilderTest
     }
 
     @Test
-    public void testQueryBuilder_WithAllPartitions()
+    public void getFromClauseWithSplit_withAllPartitions_returnsFromClauseWithoutPartition()
     {
         Split split = Mockito.mock(Split.class);
         String expectedString = " FROM \"default\".\"schema\".\"table\" ";
@@ -61,7 +61,7 @@ public class SaphanaQueryStringBuilderTest
     }
 
     @Test
-    public void testGetPartitionWhereClauses()
+    public void getPartitionWhereClauses_withSplit_returnsEmptyList()
     {
         List<String> expectedPartitionWhereClauseList1 = new ArrayList<>();
         Split split = Mockito.mock(Split.class);
@@ -71,5 +71,31 @@ public class SaphanaQueryStringBuilderTest
         SaphanaQueryStringBuilder builder = new SaphanaQueryStringBuilder(SAPHANA_QUOTE_CHARACTER, new SaphanaFederationExpressionParser(SAPHANA_QUOTE_CHARACTER));
         List<String> partitionWhereClauseList1 = builder.getPartitionWhereClauses(split);
         Assert.assertEquals(expectedPartitionWhereClauseList1, partitionWhereClauseList1);
+    }
+
+    @Test
+    public void getFromClauseWithSplit_withNullPartitionProperty_returnsFromClauseWithoutPartition()
+    {
+        Split split = Mockito.mock(Split.class);
+        Mockito.when(split.getProperties()).thenReturn(Collections.emptyMap());
+        Mockito.when(split.getProperty(Mockito.eq(BLOCK_PARTITION_COLUMN_NAME))).thenReturn(null);
+        SaphanaQueryStringBuilder builder = new SaphanaQueryStringBuilder(SAPHANA_QUOTE_CHARACTER, new SaphanaFederationExpressionParser(SAPHANA_QUOTE_CHARACTER));
+        String fromClauseWithSplit = builder.getFromClauseWithSplit("cat", "schema", "table", split);
+        Assert.assertTrue(fromClauseWithSplit.contains(" FROM "));
+        Assert.assertTrue(fromClauseWithSplit.contains("\"table\""));
+        Assert.assertFalse(fromClauseWithSplit.contains("PARTITION"));
+    }
+
+    @Test
+    public void getFromClauseWithSplit_withEmptyCatalog_returnsFromClauseWithSchemaAndTable()
+    {
+        Split split = Mockito.mock(Split.class);
+        Mockito.when(split.getProperties()).thenReturn(Collections.singletonMap(BLOCK_PARTITION_COLUMN_NAME, "p0"));
+        Mockito.when(split.getProperty(Mockito.eq(BLOCK_PARTITION_COLUMN_NAME))).thenReturn("p0");
+        SaphanaQueryStringBuilder builder = new SaphanaQueryStringBuilder(SAPHANA_QUOTE_CHARACTER, new SaphanaFederationExpressionParser(SAPHANA_QUOTE_CHARACTER));
+        String fromClauseWithSplit = builder.getFromClauseWithSplit("", "schema", "table", split);
+        Assert.assertTrue(fromClauseWithSplit.contains("\"schema\""));
+        Assert.assertTrue(fromClauseWithSplit.contains("\"table\""));
+        Assert.assertTrue(fromClauseWithSplit.contains("PARTITION (p0)"));
     }
 }

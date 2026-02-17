@@ -97,7 +97,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test
-    public void getPartitionSchema()
+    public void getPartitionSchema_withCatalogName_returnsSchemaWithPartitionColumn()
     {
         assertEquals(SchemaBuilder.newBuilder()
                         .addField(BLOCK_PARTITION_COLUMN_NAME, org.apache.arrow.vector.types.Types.MinorType.VARCHAR.getType()).build(),
@@ -105,7 +105,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test
-    public void doGetTableLayout()
+    public void doGetTableLayout_withPartitions_returnsLayoutWithPartitionList()
             throws Exception
     {
         BlockAllocator blockAllocator = new BlockAllocatorImpl();
@@ -146,7 +146,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test
-    public void doGetTableLayoutWithNoPartitions()
+    public void doGetTableLayout_withNoPartitions_returnsLayoutWithDefaultPartition()
             throws Exception
     {
         BlockAllocator blockAllocator = new BlockAllocatorImpl();
@@ -185,7 +185,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test(expected = RuntimeException.class)
-    public void doGetTableLayoutWithSQLException()
+    public void doGetTableLayout_whenSqlException_throwsRuntimeException()
             throws Exception
     {
         Constraints constraints = Mockito.mock(Constraints.class);
@@ -204,7 +204,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test
-    public void doGetSplits()
+    public void doGetSplits_withTableLayout_returnsListOfSplitsPerPartition()
             throws Exception
     {
         BlockAllocator blockAllocator = new BlockAllocatorImpl();
@@ -242,7 +242,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test
-    public void doListPaginatedTables()
+    public void doListTables_withPagination_returnsListOfTablesWithNextToken()
             throws Exception
     {
         SaphanaMetadataHandler metadataHandler = new SaphanaMetadataHandler(databaseConnectionConfig, this.secretsManager, this.athena, this.jdbcConnectionFactory, com.google.common.collect.ImmutableMap.of(), new SaphanaJDBCCaseResolver(SAPHANA_NAME, CaseResolver.FederationSDKCasingMode.NONE));
@@ -335,7 +335,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test
-    public void doGetSplitsContinuation()
+    public void doGetSplits_withContinuationToken_returnsListOfRemainingSplits()
             throws Exception
     {
         BlockAllocator blockAllocator = new BlockAllocatorImpl();
@@ -370,7 +370,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test
-    public void doGetTable()
+    public void doGetTable_withTableName_returnsTableMetadata()
             throws Exception
     {
         String[] schema = {"DATA_TYPE", "COLUMN_SIZE", "COLUMN_NAME", "DECIMAL_DIGITS", "NUM_PREC_RADIX"};
@@ -417,7 +417,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test
-    public void doGetSplitsForView()
+    public void doGetSplits_forView_returnsSingleSplitWithDefaultPartition()
             throws Exception
     {
         BlockAllocator blockAllocator = new BlockAllocatorImpl();
@@ -449,7 +449,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test(expected = SQLException.class)
-    public void doGetTableSQLException()
+    public void doGetTable_whenGetColumnsThrowsSqlException_throwsSqlException()
             throws Exception
     {
         TableName inputTableName = new TableName("testSchema", "testTable");
@@ -458,15 +458,15 @@ public class SaphanaMetadataHandlerTest
         this.saphanaMetadataHandler.doGetTable(this.blockAllocator, new GetTableRequest(this.federatedIdentity, "testQueryId", "testCatalog", inputTableName, Collections.emptyMap()));
     }
 
-    @Test (expected = RuntimeException.class)
-    public void doGetTableNoColumns() throws Exception
+    @Test(expected = RuntimeException.class)
+    public void doGetTable_whenNoColumns_throwsRuntimeException() throws Exception
     {
         TableName inputTableName = new TableName("testSchema", "testTable");
         this.saphanaMetadataHandler.doGetTable(this.blockAllocator, new GetTableRequest(this.federatedIdentity, "testQueryId", "testCatalog", inputTableName, Collections.emptyMap()));
     }
 
     @Test
-    public void doGetTableWithAnnotation()
+    public void doGetTable_withAnnotationCasing_returnsTableMetadataWithAdjustedCase()
             throws Exception
     {
         String[] schema = {"DATA_TYPE", "COLUMN_SIZE", "COLUMN_NAME", "DECIMAL_DIGITS", "NUM_PREC_RADIX"};
@@ -503,7 +503,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test
-    public void doGetTableNotFoundWithAnnotation()
+    public void doGetTable_withAnnotationAndNoMatch_throwsException()
             throws Exception
     {
         String[] schema = {"DATA_TYPE", "COLUMN_SIZE", "COLUMN_NAME", "DECIMAL_DIGITS", "NUM_PREC_RADIX"};
@@ -532,7 +532,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test
-    public void doGetTableWithNoneCasing()
+    public void doGetTable_withNoneCasing_returnsTableMetadataWithOriginalCase()
             throws Exception
     {
         String[] schema = {"DATA_TYPE", "COLUMN_SIZE", "COLUMN_NAME", "DECIMAL_DIGITS", "NUM_PREC_RADIX"};
@@ -570,7 +570,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test
-    public void testDoGetDataSourceCapabilities()
+    public void doGetDataSourceCapabilities_withDefaultRequest_returnsDataSourceCapabilities()
     {
         BlockAllocator allocator = new BlockAllocatorImpl();
         GetDataSourceCapabilitiesRequest request =
@@ -605,7 +605,7 @@ public class SaphanaMetadataHandlerTest
     }
 
     @Test
-    public void doGetSplits_queryPassthrough_returnsSingleSplit()
+    public void doGetSplits_withQueryPassthrough_returnsSingleSplitWithPassthroughArguments()
     {
         TableName tableName = new TableName("testSchema", "testTable");
 
@@ -637,5 +637,21 @@ public class SaphanaMetadataHandlerTest
 
         Map<String, String> actualProps = response.getSplits().iterator().next().getProperties();
         assertEquals(passthroughArgs, actualProps);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void doGetTableLayout_whenPrepareStatementThrowsSqlException_throwsRuntimeException()
+            throws Exception
+    {
+        BlockAllocator blockAllocator = new BlockAllocatorImpl();
+        Constraints constraints = Mockito.mock(Constraints.class);
+        TableName tableName = new TableName("testSchema", "testTable");
+        Schema partitionSchema = this.saphanaMetadataHandler.getPartitionSchema("testCatalogName");
+        Set<String> partitionCols = partitionSchema.getFields().stream().map(Field::getName).collect(Collectors.toSet());
+        GetTableLayoutRequest getTableLayoutRequest = new GetTableLayoutRequest(this.federatedIdentity, "testQueryId", "testCatalogName", tableName, constraints, partitionSchema, partitionCols);
+
+        Mockito.when(this.connection.prepareStatement(SaphanaConstants.GET_PARTITIONS_QUERY)).thenThrow(new SQLException("Connection lost"));
+
+        this.saphanaMetadataHandler.doGetTableLayout(blockAllocator, getTableLayoutRequest);
     }
 }

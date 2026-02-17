@@ -31,6 +31,7 @@ import static com.amazonaws.athena.connector.lambda.connection.EnvironmentConsta
 import static com.amazonaws.athena.connector.lambda.connection.EnvironmentConstants.PORT;
 import static com.amazonaws.athena.connector.lambda.connection.EnvironmentConstants.SECRET_NAME;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class SaphanaEnvironmentPropertiesTest
@@ -53,7 +54,7 @@ public class SaphanaEnvironmentPropertiesTest
     }
 
     @Test
-    public void testGetConnectionStringPrefix()
+    public void getConnectionStringPrefix_withConnectionProperties_returnsSaphanaJdbcUrlPrefix()
     {
         String prefix = saphanaEnvironmentProperties.getConnectionStringPrefix(connectionProperties);
 
@@ -61,7 +62,7 @@ public class SaphanaEnvironmentPropertiesTest
     }
 
     @Test
-    public void testGetDatabase()
+    public void getDatabase_withConnectionProperties_returnsDatabaseSeparator()
     {
         String database = saphanaEnvironmentProperties.getDatabase(connectionProperties);
 
@@ -69,7 +70,7 @@ public class SaphanaEnvironmentPropertiesTest
     }
 
     @Test
-    public void testConnectionPropertiesToEnvironment_withAllProperties()
+    public void connectionPropertiesToEnvironment_withAllProperties_returnsConnectionStringWithSecretAndJdbcParams()
     {
         connectionProperties.put(JDBC_PARAMS, TEST_JDBC_PARAMS);
         connectionProperties.put(SECRET_NAME, TEST_SECRET_NAME);
@@ -82,7 +83,7 @@ public class SaphanaEnvironmentPropertiesTest
     }
 
     @Test
-    public void testConnectionPropertiesToEnvironment_withoutJdbcParams()
+    public void connectionPropertiesToEnvironment_withSecretName_returnsConnectionStringWithSecretPlaceholder()
     {
         connectionProperties.put(SECRET_NAME, TEST_SECRET_NAME);
 
@@ -94,7 +95,7 @@ public class SaphanaEnvironmentPropertiesTest
     }
 
     @Test
-    public void testConnectionPropertiesToEnvironment_withoutSecretName()
+    public void connectionPropertiesToEnvironment_withJdbcParams_returnsConnectionStringWithJdbcParameters()
     {
         connectionProperties.put(JDBC_PARAMS, TEST_JDBC_PARAMS);
 
@@ -106,12 +107,36 @@ public class SaphanaEnvironmentPropertiesTest
     }
 
     @Test
-    public void testConnectionPropertiesToEnvironment_minimalProperties()
+    public void connectionPropertiesToEnvironment_withMinimalProperties_returnsConnectionStringWithHostAndPort()
     {
         Map<String, String> environment = saphanaEnvironmentProperties.connectionPropertiesToEnvironment(connectionProperties);
 
         String expectedConnectionString = EXPECTED_CONNECTION_PREFIX + TEST_HOST + ":" + TEST_PORT + "/?";
         assertTrue(environment.containsKey(DEFAULT));
         assertEquals(expectedConnectionString, environment.get(DEFAULT));
+    }
+
+    @Test
+    public void connectionPropertiesToEnvironment_withEmptyHost_returnsConnectionStringWithEmptyHostPlaceholder()
+    {
+        connectionProperties.put(HOST, "");
+        Map<String, String> environment = saphanaEnvironmentProperties.connectionPropertiesToEnvironment(connectionProperties);
+
+        assertNotNull(environment.get(DEFAULT));
+        assertTrue(environment.get(DEFAULT).contains(EXPECTED_CONNECTION_PREFIX));
+    }
+
+    @Test
+    public void getConnectionStringPrefix_withNullConnectionProperties_returnsPrefix()
+    {
+        String prefix = saphanaEnvironmentProperties.getConnectionStringPrefix(null);
+        assertEquals(EXPECTED_CONNECTION_PREFIX, prefix);
+    }
+
+    @Test
+    public void getDatabase_withNullConnectionProperties_returnsDatabaseSeparator()
+    {
+        String database = saphanaEnvironmentProperties.getDatabase(null);
+        assertEquals("/", database);
     }
 } 

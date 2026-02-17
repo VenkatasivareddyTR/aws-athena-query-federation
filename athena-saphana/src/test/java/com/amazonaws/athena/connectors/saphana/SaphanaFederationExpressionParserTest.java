@@ -32,40 +32,51 @@ public class SaphanaFederationExpressionParserTest
 {
     private final SaphanaFederationExpressionParser parser = new SaphanaFederationExpressionParser("\"");
     private final ArrowType type = new ArrowType.Utf8();
-    private static final String testValue1 = "value1";
-    private static final String testValue2 = "value2";
-    private static final String testValue3 = "value3";
+    private static final String TEST_VALUE_1 = "value1";
 
     @Test
-    public void testWriteArrayConstructorClauseWithEmptyList()
+    public void writeArrayConstructorClause_withEmptyList_returnsEmptyString()
     {
         String result = parser.writeArrayConstructorClause(type, Collections.emptyList());
         assertEquals("", result);
     }
 
     @Test
-    public void testWriteArrayConstructorClauseWithSingleElement()
+    public void writeArrayConstructorClause_withSingleElement_returnsElement()
     {
-        String result = parser.writeArrayConstructorClause(type, Collections.singletonList(testValue1));
-        assertEquals(testValue1, result);
+        String result = parser.writeArrayConstructorClause(type, Collections.singletonList(TEST_VALUE_1));
+        assertEquals(TEST_VALUE_1, result);
     }
 
     @Test
-    public void testWriteArrayConstructorClauseWithMultipleElements()
+    public void writeArrayConstructorClause_withMultipleElements_returnsCommaSeparatedValues()
     {
-        List<String> arguments = Arrays.asList(testValue1, testValue2, testValue3);
+        List<String> arguments = Arrays.asList(TEST_VALUE_1, "value2", "value3");
         
         String result = parser.writeArrayConstructorClause(type, arguments);
         assertEquals("value1, value2, value3", result);
     }
 
     @Test
-    public void testWriteArrayConstructorClauseWithNumericValues()
+    public void writeArrayConstructorClause_withNumericValues_returnsCommaSeparatedNumbers()
     {
         ArrowType type = new ArrowType.Int(64, true);
         List<String> arguments = Arrays.asList("100", "200", "300");
-        
+ 
         String result = parser.writeArrayConstructorClause(type, arguments);
         assertEquals("100, 200, 300", result);
     }
-} 
+
+    @Test(expected = NullPointerException.class)
+    public void writeArrayConstructorClause_withNullArguments_throwsNullPointerException()
+    {
+        parser.writeArrayConstructorClause(type, null);
+    }
+
+    @Test
+    public void writeArrayConstructorClause_withSingleWhitespaceValue_returnsValueAsIs()
+    {
+        String result = parser.writeArrayConstructorClause(type, Collections.singletonList("  "));
+        assertEquals("  ", result);
+    }
+}

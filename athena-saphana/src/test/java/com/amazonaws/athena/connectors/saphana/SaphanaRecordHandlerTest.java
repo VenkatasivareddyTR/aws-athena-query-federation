@@ -135,7 +135,7 @@ public class SaphanaRecordHandlerTest
     }
 
     @Test
-    public void buildSplitSqlNew()
+    public void buildSplitSql_withConstraintsAndSplit_returnsPreparedStatementWithBoundParameters()
             throws SQLException
     {
         TableName tableName = new TableName(TEST_SCHEMA, TEST_TABLE);
@@ -222,7 +222,7 @@ public class SaphanaRecordHandlerTest
     }
 
     @Test
-    public void buildSplitSqlForDateTest() {
+    public void buildSplitSql_withDateConstraints_returnsPreparedStatementWithDateBoundParameters() {
 
         try {
             final String testDateDayCol = "testDateDay";
@@ -280,7 +280,7 @@ public class SaphanaRecordHandlerTest
     }
 
     @Test
-    public void testBuildSplitSql_withQueryPassthrough()
+    public void buildSplitSql_withQueryPassthrough_returnsPreparedStatement()
     {
         try {
             Constraints constraints = Mockito.mock(Constraints.class);
@@ -309,5 +309,54 @@ public class SaphanaRecordHandlerTest
         catch (Exception e) {
             fail("Unexpected exception:" + e.getMessage());
         }
+    }
+
+    @Test(expected = SQLException.class)
+    public void buildSplitSql_whenPrepareStatementThrowsSqlException_throwsSqlException()
+            throws SQLException
+    {
+        TableName tableName = new TableName(TEST_SCHEMA, TEST_TABLE);
+        SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
+        schemaBuilder.addField(FieldBuilder.newBuilder("testCol1", Types.MinorType.INT.getType()).build());
+        schemaBuilder.addField(FieldBuilder.newBuilder("partition", Types.MinorType.VARCHAR.getType()).build());
+        Schema schema = schemaBuilder.build();
+
+        Split split = Mockito.mock(Split.class);
+        Mockito.when(split.getProperties()).thenReturn(Collections.singletonMap("partition", "p0"));
+        Mockito.when(split.getProperty(Mockito.eq("partition"))).thenReturn("p0");
+
+        Constraints constraints = Mockito.mock(Constraints.class);
+        Mockito.when(constraints.getSummary()).thenReturn(Collections.emptyMap());
+
+        Mockito.when(this.connection.prepareStatement(Mockito.anyString())).thenThrow(new SQLException("Statement pool exhausted"));
+
+        this.saphanaRecordHandler.buildSplitSql(this.connection, "testCatalogName", tableName, schema, constraints, split);
+    }
+
+    @Test
+    public void buildSplitSql_withEmptyConstraints_returnsPreparedStatement()
+            throws SQLException
+    {
+        TableName tableName = new TableName(TEST_SCHEMA, TEST_TABLE);
+        SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
+        schemaBuilder.addField(FieldBuilder.newBuilder("testCol1", Types.MinorType.INT.getType()).build());
+        schemaBuilder.addField(FieldBuilder.newBuilder("partition", Types.MinorType.VARCHAR.getType()).build());
+        Schema schema = schemaBuilder.build();
+
+        Split split = Mockito.mock(Split.class);
+        Mockito.when(split.getProperties()).thenReturn(Collections.singletonMap("partition", "p0"));
+        Mockito.when(split.getProperty(Mockito.eq("partition"))).thenReturn("p0");
+
+        Constraints constraints = Mockito.mock(Constraints.class);
+        Mockito.when(constraints.getSummary()).thenReturn(Collections.emptyMap());
+        Mockito.when(constraints.getOrderByClause()).thenReturn(Collections.emptyList());
+        Mockito.when(constraints.getLimit()).thenReturn(0L);
+
+        PreparedStatement expectedPreparedStatement = Mockito.mock(PreparedStatement.class);
+        Mockito.when(this.connection.prepareStatement(Mockito.anyString())).thenReturn(expectedPreparedStatement);
+
+        PreparedStatement preparedStatement = this.saphanaRecordHandler.buildSplitSql(this.connection, "testCatalogName", tableName, schema, constraints, split);
+
+        Assert.assertEquals(expectedPreparedStatement, preparedStatement);
     }
 }
