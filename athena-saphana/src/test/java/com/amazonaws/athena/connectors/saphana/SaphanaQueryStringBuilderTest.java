@@ -81,9 +81,9 @@ public class SaphanaQueryStringBuilderTest
         Mockito.when(split.getProperty(Mockito.eq(BLOCK_PARTITION_COLUMN_NAME))).thenReturn(null);
         SaphanaQueryStringBuilder builder = new SaphanaQueryStringBuilder(SAPHANA_QUOTE_CHARACTER, new SaphanaFederationExpressionParser(SAPHANA_QUOTE_CHARACTER));
         String fromClauseWithSplit = builder.getFromClauseWithSplit("cat", "schema", "table", split);
-        Assert.assertTrue(fromClauseWithSplit.contains(" FROM "));
-        Assert.assertTrue(fromClauseWithSplit.contains("\"table\""));
-        Assert.assertFalse(fromClauseWithSplit.contains("PARTITION"));
+        Assert.assertTrue("From clause should contain ' FROM '", fromClauseWithSplit.contains(" FROM "));
+        Assert.assertTrue("From clause should contain quoted table name", fromClauseWithSplit.contains("\"table\""));
+        Assert.assertFalse("From clause should not contain PARTITION when partition property is null", fromClauseWithSplit.contains("PARTITION"));
     }
 
     @Test
@@ -94,8 +94,8 @@ public class SaphanaQueryStringBuilderTest
         Mockito.when(split.getProperty(Mockito.eq(BLOCK_PARTITION_COLUMN_NAME))).thenReturn("p0");
         SaphanaQueryStringBuilder builder = new SaphanaQueryStringBuilder(SAPHANA_QUOTE_CHARACTER, new SaphanaFederationExpressionParser(SAPHANA_QUOTE_CHARACTER));
         String fromClauseWithSplit = builder.getFromClauseWithSplit("", "schema", "table", split);
-        Assert.assertTrue(fromClauseWithSplit.contains("\"schema\""));
-        Assert.assertTrue(fromClauseWithSplit.contains("\"table\""));
-        Assert.assertTrue(fromClauseWithSplit.contains("PARTITION (p0)"));
+        Assert.assertTrue("From clause should contain quoted schema name", fromClauseWithSplit.contains("\"schema\""));
+        Assert.assertTrue("From clause should contain quoted table name", fromClauseWithSplit.contains("\"table\""));
+        Assert.assertTrue("From clause should contain PARTITION (p0)", fromClauseWithSplit.contains("PARTITION (p0)"));
     }
 }

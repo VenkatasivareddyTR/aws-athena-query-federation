@@ -180,7 +180,7 @@ public class SaphanaOAuthCredentialsProviderTest
         secretMap.put(CLIENT_SECRET, TEST_CLIENT_SECRET);
         secretMap.put(TOKEN_URL, TEST_TOKEN_URL);
 
-        assertFalse(credentialsProvider.isOAuthConfigured(secretMap));
+        assertFalse("isOAuthConfigured should return false when client ID is empty", credentialsProvider.isOAuthConfigured(secretMap));
     }
 
     @Test
@@ -191,7 +191,7 @@ public class SaphanaOAuthCredentialsProviderTest
         secretMap.put(CLIENT_SECRET, TEST_CLIENT_SECRET);
         secretMap.put(TOKEN_URL, "");
 
-        assertFalse(credentialsProvider.isOAuthConfigured(secretMap));
+        assertFalse("isOAuthConfigured should return false when token URL is empty", credentialsProvider.isOAuthConfigured(secretMap));
     }
 
     @Test(expected = NullPointerException.class)

@@ -60,9 +60,7 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRespon
 
 import static com.amazonaws.athena.connectors.saphana.SaphanaConstants.BLOCK_PARTITION_COLUMN_NAME;
 import static com.amazonaws.athena.connectors.saphana.SaphanaConstants.SAPHANA_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.nullable;
 
 public class SaphanaMetadataHandlerTest
@@ -287,7 +285,7 @@ public class SaphanaMetadataHandlerTest
 
         listTablesResponse = metadataHandler.doListTables(blockAllocator, new ListTablesRequest(this.federatedIdentity, "testQueryId",
                 "testCatalog", "testSchema", "2", 2));
-        assertEquals(null, listTablesResponse.getNextToken());
+        assertNull(listTablesResponse.getNextToken());
         Assert.assertArrayEquals(expected, listTablesResponse.getTables().toArray());
 
         // Test 4: nextToken is 2 and pageSize is UNLIMITED. Return all tables starting from index 2.
@@ -301,7 +299,7 @@ public class SaphanaMetadataHandlerTest
         listTablesResponse = metadataHandler.doListTables(
                 blockAllocator, new ListTablesRequest(this.federatedIdentity, "testQueryId",
                         "testCatalog", "testSchema", "2", ListTablesRequest.UNLIMITED_PAGE_SIZE_VALUE));
-        assertEquals(null, listTablesResponse.getNextToken());
+        assertNull(listTablesResponse.getNextToken());
         Assert.assertArrayEquals(expected, listTablesResponse.getTables().toArray());
 
         // Test 5: AthenaConnectorException with negative nextToken value
@@ -315,7 +313,7 @@ public class SaphanaMetadataHandlerTest
         Assert.assertThrows(AthenaConnectorException.class, () -> this.saphanaMetadataHandler.doListTables(
                 blockAllocator, new ListTablesRequest(this.federatedIdentity, "testQueryId",
                         "testCatalog", "testSchema", "-1", 3)));
-        assertEquals(null, listTablesResponse.getNextToken());
+        assertNull(listTablesResponse.getNextToken());
         Assert.assertArrayEquals(expected, listTablesResponse.getTables().toArray());
 
         // Test 6: AthenaConnectorException with negative pageSize value
@@ -329,7 +327,7 @@ public class SaphanaMetadataHandlerTest
         Assert.assertThrows(AthenaConnectorException.class, () -> this.saphanaMetadataHandler.doListTables(
                 blockAllocator, new ListTablesRequest(this.federatedIdentity, "testQueryId",
                         "testCatalog", "testSchema", "0", -3)));
-        assertEquals(null, listTablesResponse.getNextToken());
+        assertNull(listTablesResponse.getNextToken());
         Assert.assertArrayEquals(expected, listTablesResponse.getTables().toArray());
 
     }
@@ -572,36 +570,40 @@ public class SaphanaMetadataHandlerTest
     @Test
     public void doGetDataSourceCapabilities_withDefaultRequest_returnsDataSourceCapabilities()
     {
-        BlockAllocator allocator = new BlockAllocatorImpl();
-        GetDataSourceCapabilitiesRequest request =
-                new GetDataSourceCapabilitiesRequest(federatedIdentity, QUERY_ID, CATALOG_NAME);
+        try (BlockAllocator allocator = new BlockAllocatorImpl()) {
+            GetDataSourceCapabilitiesRequest request =
+                    new GetDataSourceCapabilitiesRequest(federatedIdentity, QUERY_ID, CATALOG_NAME);
 
-        GetDataSourceCapabilitiesResponse response =
-                saphanaMetadataHandler.doGetDataSourceCapabilities(allocator, request);
+            GetDataSourceCapabilitiesResponse response =
+                    saphanaMetadataHandler.doGetDataSourceCapabilities(allocator, request);
 
-        Map<String, List<OptimizationSubType>> capabilities = response.getCapabilities();
+            Map<String, List<OptimizationSubType>> capabilities = response.getCapabilities();
 
-        assertEquals(CATALOG_NAME, response.getCatalogName());
+            assertEquals(CATALOG_NAME, response.getCatalogName());
 
-        // Filter pushdown
-        List<OptimizationSubType> filterPushdown = capabilities.get("supports_filter_pushdown");
-        assertNotNull("Expected supports_filter_pushdown capability to be present", filterPushdown);
-        assertEquals(2, filterPushdown.size());
-        assertTrue(filterPushdown.stream().anyMatch(subType -> subType.getSubType().equals("sorted_range_set")));
-        assertTrue(filterPushdown.stream().anyMatch(subType -> subType.getSubType().equals("nullable_comparison")));
+            // Filter pushdown
+            List<OptimizationSubType> filterPushdown = capabilities.get("supports_filter_pushdown");
+            assertNotNull("Expected supports_filter_pushdown capability to be present", filterPushdown);
+            assertEquals(2, filterPushdown.size());
+            assertTrue("Filter pushdown should include sorted_range_set subtype",
+                    filterPushdown.stream().anyMatch(subType -> subType.getSubType().equals("sorted_range_set")));
+            assertTrue("Filter pushdown should include nullable_comparison subtype",
+                    filterPushdown.stream().anyMatch(subType -> subType.getSubType().equals("nullable_comparison")));
 
-        // Complex expression pushdown
-        List<OptimizationSubType> complexPushdown = capabilities.get("supports_complex_expression_pushdown");
-        assertNotNull("Expected supports_complex_expression_pushdown capability to be present", complexPushdown);
-        assertEquals(1, complexPushdown.size());
-        assertTrue(complexPushdown.stream().anyMatch(subType ->
-                subType.getSubType().equals("supported_function_expression_types") &&
-                        !subType.getProperties().isEmpty()));
+            // Complex expression pushdown
+            List<OptimizationSubType> complexPushdown = capabilities.get("supports_complex_expression_pushdown");
+            assertNotNull("Expected supports_complex_expression_pushdown capability to be present", complexPushdown);
+            assertEquals(1, complexPushdown.size());
+            assertTrue("Complex expression pushdown should include supported_function_expression_types with non-empty properties",
+                    complexPushdown.stream().anyMatch(subType ->
+                            subType.getSubType().equals("supported_function_expression_types") &&
+                                    !subType.getProperties().isEmpty()));
 
-        // Top-N pushdown
-        List<OptimizationSubType> topNPushdown = capabilities.get("supports_top_n_pushdown");
-        assertNotNull("Expected supports_top_n_pushdown capability to be present", topNPushdown);
-        assertEquals(1, topNPushdown.size());
+            // Top-N pushdown
+            List<OptimizationSubType> topNPushdown = capabilities.get("supports_top_n_pushdown");
+            assertNotNull("Expected supports_top_n_pushdown capability to be present", topNPushdown);
+            assertEquals(1, topNPushdown.size());
+        }
     }
 
     @Test
@@ -643,15 +645,16 @@ public class SaphanaMetadataHandlerTest
     public void doGetTableLayout_whenPrepareStatementThrowsSqlException_throwsRuntimeException()
             throws Exception
     {
-        BlockAllocator blockAllocator = new BlockAllocatorImpl();
-        Constraints constraints = Mockito.mock(Constraints.class);
-        TableName tableName = new TableName("testSchema", "testTable");
-        Schema partitionSchema = this.saphanaMetadataHandler.getPartitionSchema("testCatalogName");
-        Set<String> partitionCols = partitionSchema.getFields().stream().map(Field::getName).collect(Collectors.toSet());
-        GetTableLayoutRequest getTableLayoutRequest = new GetTableLayoutRequest(this.federatedIdentity, "testQueryId", "testCatalogName", tableName, constraints, partitionSchema, partitionCols);
+        try (BlockAllocator blockAllocator = new BlockAllocatorImpl()) {
+            Constraints constraints = Mockito.mock(Constraints.class);
+            TableName tableName = new TableName("testSchema", "testTable");
+            Schema partitionSchema = this.saphanaMetadataHandler.getPartitionSchema("testCatalogName");
+            Set<String> partitionCols = partitionSchema.getFields().stream().map(Field::getName).collect(Collectors.toSet());
+            GetTableLayoutRequest getTableLayoutRequest = new GetTableLayoutRequest(this.federatedIdentity, "testQueryId", "testCatalogName", tableName, constraints, partitionSchema, partitionCols);
 
-        Mockito.when(this.connection.prepareStatement(SaphanaConstants.GET_PARTITIONS_QUERY)).thenThrow(new SQLException("Connection lost"));
+            Mockito.when(this.connection.prepareStatement(SaphanaConstants.GET_PARTITIONS_QUERY)).thenThrow(new SQLException("Connection lost"));
 
-        this.saphanaMetadataHandler.doGetTableLayout(blockAllocator, getTableLayoutRequest);
+            this.saphanaMetadataHandler.doGetTableLayout(blockAllocator, getTableLayoutRequest);
+        }
     }
 }

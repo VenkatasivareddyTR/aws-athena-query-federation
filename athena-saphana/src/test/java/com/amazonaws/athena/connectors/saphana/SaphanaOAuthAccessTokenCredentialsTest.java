@@ -47,7 +47,7 @@ public class SaphanaOAuthAccessTokenCredentialsTest
     {
         SaphanaOAuthAccessTokenCredentials credentials = new SaphanaOAuthAccessTokenCredentials(TEST_ACCESS_TOKEN);
         Map<String, String> properties = credentials.getProperties();
-        assertNotNull(properties);
+        assertNotNull("Properties map should not be null", properties);
         assertEquals(TEST_ACCESS_TOKEN, properties.get(CredentialsConstants.PASSWORD));
         assertThrows(UnsupportedOperationException.class, () -> properties.put("key", "value"));
     }
@@ -58,15 +58,19 @@ public class SaphanaOAuthAccessTokenCredentialsTest
         new SaphanaOAuthAccessTokenCredentials(null);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void constructor_withBlankToken_throwsIllegalArgumentException()
     {
-        new SaphanaOAuthAccessTokenCredentials("   ");
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+                () -> new SaphanaOAuthAccessTokenCredentials("   "));
+        assertEquals("Access token must not be blank", thrown.getMessage());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void constructor_withEmptyToken_throwsIllegalArgumentException()
     {
-        new SaphanaOAuthAccessTokenCredentials("");
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+                () -> new SaphanaOAuthAccessTokenCredentials(""));
+        assertEquals("Access token must not be blank", thrown.getMessage());
     }
 }

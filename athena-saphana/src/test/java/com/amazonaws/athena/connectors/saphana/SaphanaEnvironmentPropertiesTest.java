@@ -2,7 +2,7 @@
  * #%L
  * athena-saphana
  * %%
- * Copyright (C) 2019 - 2025 Amazon Web Services
+ * Copyright (C) 2019 - 2026 Amazon Web Services
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,8 +36,6 @@ import static org.junit.Assert.assertTrue;
 
 public class SaphanaEnvironmentPropertiesTest
 {
-    private static final String TEST_HOST = "localhost";
-    private static final String TEST_PORT = "39013";
     private static final String TEST_SECRET_NAME = "saphana-secret";
     private static final String TEST_JDBC_PARAMS = "encrypt=true";
     private static final String EXPECTED_CONNECTION_PREFIX = "saphana://jdbc:sap://";
@@ -49,8 +47,8 @@ public class SaphanaEnvironmentPropertiesTest
     public void setUp()
     {
         connectionProperties = new HashMap<>();
-        connectionProperties.put(HOST, TEST_HOST);
-        connectionProperties.put(PORT, TEST_PORT);
+        connectionProperties.put(HOST, "localhost");
+        connectionProperties.put(PORT, "39013");
     }
 
     @Test
@@ -77,8 +75,8 @@ public class SaphanaEnvironmentPropertiesTest
 
         Map<String, String> environment = saphanaEnvironmentProperties.connectionPropertiesToEnvironment(connectionProperties);
 
-        String expectedConnectionString = EXPECTED_CONNECTION_PREFIX + TEST_HOST + ":" + TEST_PORT + "/?" + TEST_JDBC_PARAMS + "&${" + TEST_SECRET_NAME + "}";
-        assertTrue(environment.containsKey(DEFAULT));
+        String expectedConnectionString = "saphana://jdbc:sap://localhost:39013/?encrypt=true&${saphana-secret}";
+        assertTrue("Environment should contain the DEFAULT key", environment.containsKey(DEFAULT));
         assertEquals(expectedConnectionString, environment.get(DEFAULT));
     }
 
@@ -89,8 +87,8 @@ public class SaphanaEnvironmentPropertiesTest
 
         Map<String, String> environment = saphanaEnvironmentProperties.connectionPropertiesToEnvironment(connectionProperties);
 
-        String expectedConnectionString = EXPECTED_CONNECTION_PREFIX + TEST_HOST + ":" + TEST_PORT + "/?${" + TEST_SECRET_NAME + "}";
-        assertTrue(environment.containsKey(DEFAULT));
+        String expectedConnectionString = "saphana://jdbc:sap://localhost:39013/?${saphana-secret}";
+        assertTrue("Environment should contain the DEFAULT key", environment.containsKey(DEFAULT));
         assertEquals(expectedConnectionString, environment.get(DEFAULT));
     }
 
@@ -101,8 +99,8 @@ public class SaphanaEnvironmentPropertiesTest
 
         Map<String, String> environment = saphanaEnvironmentProperties.connectionPropertiesToEnvironment(connectionProperties);
 
-        String expectedConnectionString = EXPECTED_CONNECTION_PREFIX + TEST_HOST + ":" + TEST_PORT + "/?" + TEST_JDBC_PARAMS;
-        assertTrue(environment.containsKey(DEFAULT));
+        String expectedConnectionString = "saphana://jdbc:sap://localhost:39013/?encrypt=true";
+        assertTrue("Environment should contain the DEFAULT key", environment.containsKey(DEFAULT));
         assertEquals(expectedConnectionString, environment.get(DEFAULT));
     }
 
@@ -111,8 +109,8 @@ public class SaphanaEnvironmentPropertiesTest
     {
         Map<String, String> environment = saphanaEnvironmentProperties.connectionPropertiesToEnvironment(connectionProperties);
 
-        String expectedConnectionString = EXPECTED_CONNECTION_PREFIX + TEST_HOST + ":" + TEST_PORT + "/?";
-        assertTrue(environment.containsKey(DEFAULT));
+        String expectedConnectionString = "saphana://jdbc:sap://localhost:39013/?";
+        assertTrue("Environment should contain the DEFAULT key", environment.containsKey(DEFAULT));
         assertEquals(expectedConnectionString, environment.get(DEFAULT));
     }
 
@@ -122,8 +120,8 @@ public class SaphanaEnvironmentPropertiesTest
         connectionProperties.put(HOST, "");
         Map<String, String> environment = saphanaEnvironmentProperties.connectionPropertiesToEnvironment(connectionProperties);
 
-        assertNotNull(environment.get(DEFAULT));
-        assertTrue(environment.get(DEFAULT).contains(EXPECTED_CONNECTION_PREFIX));
+        assertNotNull("Environment should contain the DEFAULT key", environment.get(DEFAULT));
+        assertTrue("Environment should contain the DEFAULT key", environment.get(DEFAULT).contains(EXPECTED_CONNECTION_PREFIX));
     }
 
     @Test

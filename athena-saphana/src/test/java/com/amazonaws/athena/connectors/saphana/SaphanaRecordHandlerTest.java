@@ -76,6 +76,8 @@ public class SaphanaRecordHandlerTest
     private AthenaClient athena;
     private static final String TEST_SCHEMA = "testSchema";
     private static final String TEST_TABLE = "testTable";
+    private static final String PARTITION_COLUMN = "partition";
+    private static final String PARTITION_VALUE_P0 = "p0";
 
     @Before
     public void setup()
@@ -138,7 +140,7 @@ public class SaphanaRecordHandlerTest
     public void buildSplitSql_withConstraintsAndSplit_returnsPreparedStatementWithBoundParameters()
             throws SQLException
     {
-        TableName tableName = new TableName(TEST_SCHEMA, TEST_TABLE);
+        TableName tableName = createTableName();
 
         SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
         schemaBuilder.addField(FieldBuilder.newBuilder("testCol1", Types.MinorType.INT.getType()).build());
@@ -155,13 +157,10 @@ public class SaphanaRecordHandlerTest
         schemaBuilder.addField(FieldBuilder.newBuilder("testCol12", Types.MinorType.INT.getType()).build());
         schemaBuilder.addStructField("struct")
                 .addChildField("struct", "struct_string", Types.MinorType.VARCHAR.getType());
-        schemaBuilder.addField(FieldBuilder.newBuilder("partition", Types.MinorType.VARCHAR.getType()).build());
+        schemaBuilder.addField(FieldBuilder.newBuilder(PARTITION_COLUMN, Types.MinorType.VARCHAR.getType()).build());
         Schema schema = schemaBuilder.build();
 
-
-        Split split = Mockito.mock(Split.class);
-        Mockito.when(split.getProperties()).thenReturn(Collections.singletonMap("partition", "p0"));
-        Mockito.when(split.getProperty(Mockito.eq("partition"))).thenReturn("p0");
+        Split split = createSplitWithPartition(PARTITION_COLUMN, PARTITION_VALUE_P0);
 
         Range range1a = Mockito.mock(Range.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(range1a.isSingleValue()).thenReturn(true);
@@ -230,7 +229,7 @@ public class SaphanaRecordHandlerTest
             final String structCol = "struct";
             final String partition = "partition";
             final String partitionP0 = "P0";
-            TableName tableName = new TableName(TEST_SCHEMA, TEST_TABLE);
+            TableName tableName = createTableName();
 
             SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
             schemaBuilder.addField(FieldBuilder.newBuilder(testDateDayCol, Types.MinorType.DATEDAY.getType()).build());
@@ -241,9 +240,7 @@ public class SaphanaRecordHandlerTest
             schemaBuilder.addField(FieldBuilder.newBuilder(partition, Types.MinorType.VARCHAR.getType()).build());
             Schema schema = schemaBuilder.build();
 
-            Split split = Mockito.mock(Split.class);
-            Mockito.when(split.getProperties()).thenReturn(Collections.singletonMap(partition, partitionP0));
-            Mockito.when(split.getProperty(Mockito.eq(partition))).thenReturn(partitionP0);
+            Split split = createSplitWithPartition(partition, partitionP0);
 
             final long dateDays = TimeUnit.MILLISECONDS.toDays(Date.valueOf("2020-01-05").getTime());
             ValueSet valueSet1 = getSingleValueSet(dateDays);
@@ -315,15 +312,9 @@ public class SaphanaRecordHandlerTest
     public void buildSplitSql_whenPrepareStatementThrowsSqlException_throwsSqlException()
             throws SQLException
     {
-        TableName tableName = new TableName(TEST_SCHEMA, TEST_TABLE);
-        SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
-        schemaBuilder.addField(FieldBuilder.newBuilder("testCol1", Types.MinorType.INT.getType()).build());
-        schemaBuilder.addField(FieldBuilder.newBuilder("partition", Types.MinorType.VARCHAR.getType()).build());
-        Schema schema = schemaBuilder.build();
-
-        Split split = Mockito.mock(Split.class);
-        Mockito.when(split.getProperties()).thenReturn(Collections.singletonMap("partition", "p0"));
-        Mockito.when(split.getProperty(Mockito.eq("partition"))).thenReturn("p0");
+        TableName tableName = createTableName();
+        Schema schema = createMinimalSchemaWithPartition();
+        Split split = createSplitWithPartition(PARTITION_COLUMN, PARTITION_VALUE_P0);
 
         Constraints constraints = Mockito.mock(Constraints.class);
         Mockito.when(constraints.getSummary()).thenReturn(Collections.emptyMap());
@@ -337,15 +328,9 @@ public class SaphanaRecordHandlerTest
     public void buildSplitSql_withEmptyConstraints_returnsPreparedStatement()
             throws SQLException
     {
-        TableName tableName = new TableName(TEST_SCHEMA, TEST_TABLE);
-        SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
-        schemaBuilder.addField(FieldBuilder.newBuilder("testCol1", Types.MinorType.INT.getType()).build());
-        schemaBuilder.addField(FieldBuilder.newBuilder("partition", Types.MinorType.VARCHAR.getType()).build());
-        Schema schema = schemaBuilder.build();
-
-        Split split = Mockito.mock(Split.class);
-        Mockito.when(split.getProperties()).thenReturn(Collections.singletonMap("partition", "p0"));
-        Mockito.when(split.getProperty(Mockito.eq("partition"))).thenReturn("p0");
+        TableName tableName = createTableName();
+        Schema schema = createMinimalSchemaWithPartition();
+        Split split = createSplitWithPartition(PARTITION_COLUMN, PARTITION_VALUE_P0);
 
         Constraints constraints = Mockito.mock(Constraints.class);
         Mockito.when(constraints.getSummary()).thenReturn(Collections.emptyMap());
@@ -358,5 +343,26 @@ public class SaphanaRecordHandlerTest
         PreparedStatement preparedStatement = this.saphanaRecordHandler.buildSplitSql(this.connection, "testCatalogName", tableName, schema, constraints, split);
 
         Assert.assertEquals(expectedPreparedStatement, preparedStatement);
+    }
+
+    private TableName createTableName()
+    {
+        return new TableName(TEST_SCHEMA, TEST_TABLE);
+    }
+
+    private Split createSplitWithPartition(String partitionKey, String partitionValue)
+    {
+        Split split = Mockito.mock(Split.class);
+        Mockito.when(split.getProperties()).thenReturn(Collections.singletonMap(partitionKey, partitionValue));
+        Mockito.when(split.getProperty(Mockito.eq(partitionKey))).thenReturn(partitionValue);
+        return split;
+    }
+
+    private Schema createMinimalSchemaWithPartition()
+    {
+        SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
+        schemaBuilder.addField(FieldBuilder.newBuilder("testCol1", Types.MinorType.INT.getType()).build());
+        schemaBuilder.addField(FieldBuilder.newBuilder(PARTITION_COLUMN, Types.MinorType.VARCHAR.getType()).build());
+        return schemaBuilder.build();
     }
 }
