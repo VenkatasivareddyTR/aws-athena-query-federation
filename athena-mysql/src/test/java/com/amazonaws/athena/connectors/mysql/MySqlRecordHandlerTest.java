@@ -168,15 +168,8 @@ public class MySqlRecordHandlerTest
         final java.time.LocalDate localDate = java.time.LocalDate.of(2020, 1, 3);
         final long dateDays = localDate.toEpochDay();
         ValueSet valueSet = getSingleValueSet(dateDays);
-
-        Constraints constraints = new Constraints(
-                Collections.singletonMap("testDate", valueSet),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Constraints.DEFAULT_NO_LIMIT,
-                Collections.emptyMap(),
-                null
-        );
+        Map<String, ValueSet> constraintMap = Collections.singletonMap("testDate", valueSet);
+        Constraints constraints = getDefaultConstraints(constraintMap);
 
         String expectedSql = "SELECT `testDate` FROM `testSchema`.`testTable` PARTITION(p0)  WHERE (`testDate` = ?)";
         PreparedStatement expectedPreparedStatement = Mockito.mock(PreparedStatement.class);
@@ -241,14 +234,7 @@ public class MySqlRecordHandlerTest
                 .put("decimal9_3", getSingleValueSet(decimal9_3Value))
                 .build();
 
-        Constraints constraints = new Constraints(
-                constraintMap,
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Constraints.DEFAULT_NO_LIMIT,
-                Collections.emptyMap(),
-                null
-        );
+        Constraints constraints = getDefaultConstraints(constraintMap);
 
         String expectedSql = "SELECT `bigintCol`, `decimal38_10`, `decimal18_6`, `decimal9_3` FROM `testSchema`.`testTable` PARTITION(p0)  WHERE (`bigintCol` = ?) AND (`decimal38_10` = ?) AND (`decimal18_6` = ?) AND (`decimal9_3` = ?)";
         PreparedStatement expectedPreparedStatement = Mockito.mock(PreparedStatement.class);
@@ -314,5 +300,16 @@ public class MySqlRecordHandlerTest
         ValueSet valueSet = Mockito.mock(SortedRangeSet.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(valueSet.getRanges().getOrderedRanges()).thenReturn(Collections.singletonList(range));
         return valueSet;
+    }
+
+    private Constraints getDefaultConstraints(Map<String, ValueSet> constraintMap) {
+        return new Constraints(
+                constraintMap,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Constraints.DEFAULT_NO_LIMIT,
+                Collections.emptyMap(),
+                null
+        );
     }
 }
